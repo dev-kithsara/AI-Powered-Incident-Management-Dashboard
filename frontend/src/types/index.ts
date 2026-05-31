@@ -1,0 +1,182 @@
+// ── Core Entities ──────────────────────────────────────────────────────────
+export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'CLOSED'
+export type UserRole = 'admin' | 'manager' | 'staff'
+
+export interface User {
+  id:        number
+  name:      string
+  email:     string
+  role:      UserRole
+  isActive:  boolean
+  createdAt: string
+}
+
+export interface Incident {
+  id:                 number
+  title:              string
+  description:        string
+  severity:           Severity
+  category?:          string
+  location?:          string
+  department?:        string
+  reportedBy?:        number
+  reporter?:          { id: number; name: string; email: string }
+  status:             IncidentStatus
+  aiProcessed:        boolean
+  predictedRiskScore?: number
+  clusterId?:         number
+  deletedAt?:         string
+  createdAt:          string
+  updatedAt:          string
+  // lifecycle objects (populated by getById)
+  actions?:           IncidentAction[]
+  investigation?:     Investigation | null
+  rootCause?:         RootCause | null
+  controls?:          Control[]
+  review?:            Review | null
+  closure?:           Closure | null
+}
+
+export interface IncidentAction {
+  id:          number
+  incidentId:  number
+  actionTaken: string
+  assignedTo?: number
+  assignee?:   { id: number; name: string }
+  priority:    'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+  dueDate?:    string
+  status:      'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE'
+  createdAt:   string
+  updatedAt:   string
+}
+
+export interface Investigation {
+  id:                number
+  incidentId:        number
+  findings?:         string
+  evidence?:         string
+  investigatedBy?:   number
+  investigator?:     { id: number; name: string }
+  investigationDate?: string
+  createdAt:         string
+  updatedAt:         string
+}
+
+export interface RootCause {
+  id:                  number
+  incidentId:          number
+  rootCauseCategory:   string
+  description:         string
+  contributingFactors?: string
+  causalChain?:        string
+  createdAt:           string
+  updatedAt:           string
+}
+
+export interface Control {
+  id:                 number
+  incidentId:         number
+  controlType:        'Preventive' | 'Detective' | 'Corrective'
+  description:        string
+  owner?:             number
+  controlOwner?:      { id: number; name: string }
+  implementationDate?: string
+  status:             'PLANNED' | 'IN_PROGRESS' | 'IMPLEMENTED' | 'VERIFIED'
+  createdAt:          string
+  updatedAt:          string
+}
+
+export interface Review {
+  id:                  number
+  incidentId:          number
+  reviewerId?:         number
+  reviewer?:           { id: number; name: string }
+  reviewNotes?:        string
+  effectivenessRating?: number
+  reviewDate?:         string
+  createdAt:           string
+  updatedAt:           string
+}
+
+export interface Closure {
+  id:             number
+  incidentId:     number
+  closureSummary: string
+  lessonsLearned?: string
+  closedBy?:      number
+  closer?:        { id: number; name: string }
+  closureDate:    string
+  createdAt:      string
+  updatedAt:      string
+}
+
+// ── API Response Shapes ────────────────────────────────────────────────────
+export interface PaginatedResponse<T> {
+  data: T[]
+  meta: { page: number; limit: number; total: number; pages: number }
+}
+
+export interface Stats {
+  total:       number
+  open:        number
+  inProgress:  number
+  underReview: number
+  closed:      number
+  bySeverity:  { LOW: number; MEDIUM: number; HIGH: number; CRITICAL: number }
+  topCategories: { category: string; count: number }[]
+  recentIncidents: Pick<Incident, 'id' | 'title' | 'severity' | 'status' | 'createdAt'>[]
+}
+
+// ── AI ─────────────────────────────────────────────────────────────────────
+export interface SimilarIncident {
+  incident_id:      number
+  title:            string
+  severity:         Severity
+  similarity_score: number
+  category?:        string
+}
+
+export interface ClusterPoint {
+  incident_id: number
+  title:       string
+  severity:    Severity
+  category?:   string
+  x:           number
+  y:           number
+  cluster:     number
+}
+
+export interface ClusterMap {
+  clusters:        ClusterPoint[]
+  cluster_labels:  Record<string, string>
+  total_incidents: number
+  num_clusters:    number
+}
+
+export interface ModelStatus {
+  classifier_trained: boolean
+  clustering_trained: boolean
+  training_samples?:  number
+  accuracy?:          number
+  precision?:         number
+  recall?:            number
+  f1_score?:          number
+  optimal_k?:         number
+  silhouette_score?:  number
+  trained_at?:        string
+}
+
+export interface RiskPrediction {
+  risk_score:           number
+  risk_label:           Severity
+  confidence:           number
+  contributing_factors: string[]
+}
+
+// ── Timeline ───────────────────────────────────────────────────────────────
+export interface TimelineEvent {
+  type: string
+  date: string
+  data: Record<string, unknown>
+}
