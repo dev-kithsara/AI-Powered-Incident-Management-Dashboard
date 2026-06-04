@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  # ── PostgreSQL 16 with pgvector ──────────────────────────────────────────
+  # ── PostgreSQL 16 with pgvector ─────────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ims_postgres
@@ -20,7 +20,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Redis ────────────────────────────────────────────────────────────────
+  # ── Redis ───────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: ims_redis
@@ -34,13 +34,19 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Node.js Backend ──────────────────────────────────────────────────────
+  # ── Node.js Backend ─────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     container_name: ims_backend
     env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://ims_user:ims_password@postgres:5432/incident_management
+      AI_SERVICE_URL: http://ai-service:8001
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: http://localhost:3000
     ports:
       - "8000:8000"
     depends_on:
@@ -53,13 +59,17 @@ services:
       - /app/node_modules
     restart: unless-stopped
 
-  # ── Python AI Service ────────────────────────────────────────────────────
+  # ── Python AI Service ───────────────────────────────────────────────────────
   ai-service:
     build:
       context: ./ai_service
       dockerfile: Dockerfile
+      network: host
     container_name: ims_ai_service
     env_file: ./ai_service/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ims_user:ims_password@postgres:5432/incident_management
+      AI_API_KEY: internal_ai_key
     ports:
       - "8001:8001"
     depends_on:
@@ -70,7 +80,7 @@ services:
       - ai_models:/app/models
     restart: unless-stopped
 
-  # ── React Frontend ───────────────────────────────────────────────────────
+  # ── React Frontend ──────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
