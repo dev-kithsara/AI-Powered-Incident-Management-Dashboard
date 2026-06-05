@@ -1,18 +1,31 @@
-# Use Debian slim — has OpenSSL 1.1 that Prisma needs
-FROM node:20-slim
+# Build stage: install dependencies and generate Prisma client
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Install OpenSSL (required by Prisma query engine)
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+  && apt-get install -y openssl \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
-
-# Generate Prisma client for the current platform
 RUN npx prisma generate
+
+# Runtime stage: keep only what is needed to run the app
+FROM node:20-slim AS runtime
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src ./src
 
 EXPOSE 8000
 
