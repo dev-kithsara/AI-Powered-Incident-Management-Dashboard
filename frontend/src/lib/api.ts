@@ -4,7 +4,7 @@ import type {
   Incident, IncidentAction, Investigation, RootCause,
   Control, Review, Closure, User, Stats,
   PaginatedResponse, SimilarIncident, ClusterMap,
-  ModelStatus, RiskPrediction, TimelineEvent,
+  ModelStatus, RiskPrediction, TimelineEvent, RiskAnalysis,
 } from '@/types'
 
 // ── Axios instance ─────────────────────────────────────────────────────────
@@ -72,6 +72,10 @@ export const incidentsApi = {
     api.post<{ data: Investigation }>(`/incidents/${id}/investigation`, data),
   getInvestigation: (id: number) =>
     api.get<{ data: Investigation | null }>(`/incidents/${id}/investigation`),
+  uploadEvidence:   (id: number, data: FormData) =>
+    api.post<{ data: string[] }>(`/incidents/${id}/upload-evidence`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 
   // Object 4: Root Cause
   addRootCause: (id: number, data: Partial<RootCause>) =>
@@ -132,4 +136,7 @@ export const aiApi = {
   clusterStats: () => api.get('/ai/cluster-stats'),
   modelStatus:  () => api.get<ModelStatus>('/ai/model-status'),
   health:       () => api.get('/ai/health'),
+  riskAnalysis: () => api.get<RiskAnalysis>('/ai/risk-analysis'),
+  runPipeline:  () => api.post('/ai/run-pipeline'),
+  seedBaseline: () => api.post('/ai/seed-baseline'),
 }

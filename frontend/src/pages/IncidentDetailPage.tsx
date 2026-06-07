@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, CheckCircle, Clock, FileText, Shield,
   Search, ClipboardCheck, XCircle, Brain, Loader2,
-  Plus, ChevronRight,
+  Plus, ChevronRight, UploadCloud, Paperclip, X,
 } from 'lucide-react'
 import { incidentsApi, aiApi } from '@/lib/api'
 import { Button }   from '@/components/ui/button'
@@ -37,6 +37,7 @@ export default function IncidentDetailPage() {
   const [tab,       setTab]       = useState<Tab>('overview')
   const [similar,   setSimilar]   = useState<SimilarIncident[] | null>(null)
   const [simLoad,   setSimLoad]   = useState(false)
+  const [simLoaded, setSimLoaded] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['incident', incId],
@@ -65,8 +66,25 @@ export default function IncidentDetailPage() {
   // ── Investigation form ───────────────────────────────────────────────────
   const [invFindings, setInvFindings] = useState(inc?.investigation?.findings ?? '')
   const [invEvidence, setInvEvidence] = useState(inc?.investigation?.evidence ?? '')
+  const [invEvidenceFiles, setInvEvidenceFiles] = useState<string[]>(inc?.investigation?.evidenceFiles ?? [])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  
+  const uploadMut = useMutation({
+    mutationFn: (files: File[]) => {
+      const formData = new FormData()
+      files.forEach(f => formData.append('files', f))
+      return incidentsApi.uploadEvidence(incId, formData)
+    },
+    onSuccess: (res) => {
+      setInvEvidenceFiles(prev => [...prev, ...res.data.data])
+      setSelectedFiles([])
+      toast({ title: 'Files uploaded', variant: 'success' })
+    },
+    onError: () => toast({ title: 'Upload failed', variant: 'destructive' })
+  })
+
   const addInvMut = useMutation({
-    mutationFn: () => incidentsApi.addInvestigation(incId, { findings: invFindings, evidence: invEvidence }),
+    mutationFn: () => incidentsApi.addInvestigation(incId, { findings: invFindings, evidence: invEvidence, evidenceFiles: invEvidenceFiles }),
     onSuccess:  () => { queryClient.invalidateQueries({ queryKey: ['incident', incId] }); toast({ title: 'Investigation saved', variant: 'success' }) },
     onError:    () => toast({ title: 'Failed', variant: 'destructive' }),
   })
@@ -122,12 +140,21 @@ export default function IncidentDetailPage() {
     try {
       const res = await aiApi.similar(incId)
       setSimilar(res.data.similar_incidents)
+      setSimLoaded(true)
     } catch {
       toast({ title: 'AI service unavailable', variant: 'destructive' })
     } finally {
       setSimLoad(false)
     }
   }
+
+  // Auto-load similar incidents when incident data is ready and AI-processed
+  useEffect(() => {
+    if (inc?.aiProcessed && !simLoaded) {
+      loadSimilar()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inc?.aiProcessed])
 
   if (isLoading || !inc) {
     return (
@@ -266,11 +293,42 @@ export default function IncidentDetailPage() {
                   <Textarea value={invFindings} onChange={e => setInvFindings(e.target.value)} placeholder="Document investigation findings..." rows={4} disabled={inc.status === 'CLOSED'} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Evidence</Label>
+                  <Label>Evidence Description</Label>
                   <Textarea value={invEvidence} onChange={e => setInvEvidence(e.target.value)} placeholder="List evidence collected..." rows={3} disabled={inc.status === 'CLOSED'} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Evidence Files (Photos, Documents)</Label>
+                  {invEvidenceFiles.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                      {invEvidenceFiles.map((url, i) => (
+                        <div key={i} className="relative group rounded border border-border overflow-hidden bg-accent/30 flex items-center justify-center p-2">
+                          {url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                            <img src={`${(import.meta as any).env.VITE_API_URL || ''}${url}`} alt="Evidence" className="max-h-24 object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center p-2"><Paperclip className="h-6 w-6 mb-1 text-muted-foreground"/><span className="text-xs break-all text-center">{url.split('/').pop()}</span></div>
+                          )}
+                          {inc.status !== 'CLOSED' && (
+                            <button onClick={() => setInvEvidenceFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                              <X className="h-3 w-3 text-white" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {inc.status !== 'CLOSED' && (
+                    <div className="flex gap-2 items-center">
+                      <Input type="file" multiple onChange={e => {
+                        if (e.target.files) setSelectedFiles(Array.from(e.target.files))
+                      }} className="flex-1 text-xs" />
+                      <Button variant="secondary" onClick={() => uploadMut.mutate(selectedFiles)} disabled={selectedFiles.length === 0 || uploadMut.isPending}>
+                        {uploadMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UploadCloud className="h-4 w-4 mr-2" /> Upload</>}
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {inc.status !== 'CLOSED' && (
-                  <Button onClick={() => addInvMut.mutate()} disabled={addInvMut.isPending}>
+                  <Button onClick={() => addInvMut.mutate()} disabled={addInvMut.isPending || uploadMut.isPending} className="mt-4">
                     {addInvMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Investigation'}
                   </Button>
                 )}
@@ -451,16 +509,40 @@ export default function IncidentDetailPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Brain className="h-3.5 w-3.5 text-primary" /> Similar Incidents
+                {similar !== null && (
+                  <button
+                    onClick={loadSimilar}
+                    disabled={simLoad}
+                    className="ml-auto text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                    title="Refresh"
+                  >
+                    {simLoad ? <Loader2 className="h-3 w-3 animate-spin" /> : '↺'}
+                  </button>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-0">
-              {similar === null ? (
-                <Button variant="outline" size="sm" className="w-full" onClick={loadSimilar} disabled={!inc.aiProcessed || simLoad}>
-                  {simLoad ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Find Similar'}
-                  {!inc.aiProcessed && ' (Process incident first)'}
-                </Button>
+              {simLoad && similar === null ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="ml-2 text-xs text-muted-foreground">Finding similar...</span>
+                </div>
+              ) : similar === null ? (
+                <>
+                  <Button variant="outline" size="sm" className="w-full" onClick={loadSimilar} disabled={!inc.aiProcessed || simLoad}>
+                    {simLoad ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Find Similar'}
+                  </Button>
+                  {!inc.aiProcessed && (
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      ⏳ AI is processing this incident…
+                    </p>
+                  )}
+                </>
               ) : similar.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No similar incidents found</p>
+                <div className="text-center py-3">
+                  <p className="text-xs text-muted-foreground">No similar incidents found</p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">More incidents will improve results</p>
+                </div>
               ) : (
                 similar.map(s => (
                   <Link key={s.incident_id} to={`/incidents/${s.incident_id}`}

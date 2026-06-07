@@ -69,3 +69,55 @@ class ModelStatusResponse(BaseModel):
 # ── Process Request ────────────────────────────────────────────────────────
 class ProcessRequest(BaseModel):
     incident_id: int
+
+
+# ── Risk Analysis (Aggregated) ─────────────────────────────────────────────
+class RiskSummary(BaseModel):
+    total_incidents: int
+    avg_risk_score:  float
+    critical_count:  int
+    high_count:      int
+    medium_count:    int
+    low_count:       int
+    open_incidents:  int
+
+
+class MonthlyTrendPoint(BaseModel):
+    month:    str          # "YYYY-MM"
+    LOW:      int = 0
+    MEDIUM:   int = 0
+    HIGH:     int = 0
+    CRITICAL: int = 0
+
+
+class DepartmentRisk(BaseModel):
+    department:      str
+    avg_risk_score:  float
+    total_incidents: int
+    critical_count:  int
+
+
+class CategoryBreakdown(BaseModel):
+    category:        str
+    total:           int
+    high_risk_count: int
+    avg_risk_score:  float
+
+
+class AtRiskIncident(BaseModel):
+    id:          int
+    title:       str
+    severity:    str
+    category:    Optional[str]
+    department:  Optional[str]
+    risk_score:  float
+    created_at:  Optional[str]
+    status:      str
+
+
+class RiskAnalysisResponse(BaseModel):
+    summary:            RiskSummary
+    monthly_trend:      List[MonthlyTrendPoint]
+    department_risk:    List[DepartmentRisk]
+    category_breakdown: List[CategoryBreakdown]
+    top_at_risk:        List[AtRiskIncident]

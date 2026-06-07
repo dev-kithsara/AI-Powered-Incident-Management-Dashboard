@@ -36,5 +36,9 @@ router.get('/cluster-stats',     proxyToAI);
 router.get('/model-status',      proxyToAI);
 router.get('/health',            proxyToAI);
 router.post('/process',          proxyToAI);
+router.get('/risk-analysis',     proxyToAI);
+router.post('/retrain-classifier', proxyToAI); // retrain classifier only
+router.post('/run-pipeline',       proxyToAI); // full pipeline: embed → cluster → train
+router.post('/seed-baseline',      proxyToAI); // seed 30 baseline incidents + run pipeline
 
 module.exports = router;

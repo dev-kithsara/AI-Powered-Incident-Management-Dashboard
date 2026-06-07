@@ -19,8 +19,25 @@ COPY requirements.txt .
 # Install PyTorch CPU-only first (much smaller ~180MB vs 530MB GPU build)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
+# Install umap-learn separately (has heavy C++ deps via llvmlite)
+RUN pip install --no-cache-dir umap-learn==0.5.7 || \
+    echo "umap-learn install failed, will fall back to PCA at runtime"
+
 # Install the rest of the packages
-RUN pip install --no-cache-dir --retries 5 --timeout 300 -r requirements.txt
+RUN pip install --no-cache-dir --retries 5 --timeout 300 \
+    fastapi==0.115.0 \
+    "uvicorn[standard]==0.32.0" \
+    "sqlalchemy[asyncio]==2.0.36" \
+    asyncpg==0.30.0 \
+    pydantic==2.9.2 \
+    scikit-learn==1.5.2 \
+    pandas==2.2.3 \
+    numpy==1.26.4 \
+    apscheduler==3.10.4 \
+    httpx==0.27.2 \
+    python-dotenv==1.0.1 \
+    python-multipart==0.0.12 \
+    "sentence-transformers==3.3.1"
 
 # Pre-download sentence transformer model into the image layer (cached)
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"

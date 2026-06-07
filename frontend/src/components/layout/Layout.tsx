@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, AlertTriangle, Plus, Brain,
   Users, LogOut, Settings, ChevronRight, Activity,
-  ShieldAlert,
+  ShieldAlert, TrendingUp,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
@@ -11,11 +11,12 @@ import { Toaster } from '@/components/ui/toaster'
 interface NavItem { to: string; icon: React.ElementType; label: string; adminOnly?: boolean }
 
 const navItems: NavItem[] = [
-  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/incidents',      icon: AlertTriangle,   label: 'Incidents' },
-  { to: '/incidents/new',  icon: Plus,            label: 'New Incident' },
-  { to: '/ai-dashboard',   icon: Brain,           label: 'AI Analytics' },
-  { to: '/users',          icon: Users,           label: 'Users', adminOnly: true },
+  { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/incidents',       icon: AlertTriangle,   label: 'Incidents' },
+  { to: '/incidents/new',   icon: Plus,            label: 'New Incident' },
+  { to: '/ai-dashboard',    icon: Brain,           label: 'AI Analytics' },
+  { to: '/predictive-risk', icon: TrendingUp,      label: 'Risk Analysis' },
+  { to: '/users',           icon: Users,           label: 'Users', adminOnly: true },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {

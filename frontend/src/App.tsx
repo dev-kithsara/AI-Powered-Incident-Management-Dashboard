@@ -6,9 +6,10 @@ import DashboardPage      from '@/pages/DashboardPage'
 import IncidentsPage      from '@/pages/IncidentsPage'
 import CreateIncidentPage from '@/pages/CreateIncidentPage'
 import IncidentDetailPage from '@/pages/IncidentDetailPage'
-import AIDashboardPage    from '@/pages/AIDashboardPage'
-import UsersPage          from '@/pages/UsersPage'
-import ProfilePage        from '@/pages/ProfilePage'
+import AIDashboardPage      from '@/pages/AIDashboardPage'
+import PredictiveRiskPage   from '@/pages/PredictiveRiskPage'
+import UsersPage            from '@/pages/UsersPage'
+import ProfilePage          from '@/pages/ProfilePage'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore(s => s.token)
@@ -63,6 +64,12 @@ export default function App() {
         <Route path="/ai-dashboard" element={
           <ProtectedRoute>
             <Layout><AIDashboardPage /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/predictive-risk" element={
+          <ProtectedRoute>
+            <Layout><PredictiveRiskPage /></Layout>
           </ProtectedRoute>
         } />
 

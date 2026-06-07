@@ -80,6 +80,7 @@ model IncidentInvestigation {
   incidentId        Int       @unique @map("incident_id")
   findings          String?
   evidence          String?
+  evidenceFiles     String[]  @map("evidence_files")
   investigatedBy    Int?      @map("investigated_by")
   investigationDate DateTime? @map("investigation_date") @db.Date
   createdAt         DateTime  @default(now()) @map("created_at")

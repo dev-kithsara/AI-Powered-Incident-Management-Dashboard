@@ -1,10 +1,7 @@
-version: '3.9'
-
 services:
-  # ── PostgreSQL 16 with pgvector ─────────────────────────────────────────────
+  # ── PostgreSQL 16 with pgvector ──────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: ims_postgres
     environment:
       POSTGRES_DB:       incident_management
       POSTGRES_USER:     ims_user
@@ -19,11 +16,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # ── Redis ───────────────────────────────────────────────────────────────────
+  # ── Redis ────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: ims_redis
     ports:
       - "6379:6379"
     volumes:
@@ -33,14 +30,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # ── Node.js Backend ─────────────────────────────────────────────────────────
+  # ── Node.js Backend ──────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
       network: host
-    container_name: ims_backend
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql://ims_user:ims_password@postgres:5432/incident_management
@@ -59,13 +56,12 @@ services:
       - /app/node_modules
     restart: unless-stopped
 
-  # ── Python AI Service ───────────────────────────────────────────────────────
+  # ── Python AI Service ────────────────────────────────────────────────────
   ai-service:
     build:
       context: ./ai_service
       dockerfile: Dockerfile
       network: host
-    container_name: ims_ai_service
     env_file: ./ai_service/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://ims_user:ims_password@postgres:5432/incident_management
@@ -80,12 +76,11 @@ services:
       - ai_models:/app/models
     restart: unless-stopped
 
-  # ── React Frontend ──────────────────────────────────────────────────────────
+  # ── React Frontend ───────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: ims_frontend
     ports:
       - "3000:3000"
     depends_on:
@@ -97,7 +92,26 @@ services:
       - VITE_API_URL=http://localhost:8000
     restart: unless-stopped
 
+# ── Named Volumes ────────────────────────────────────────────────────────────
+# Docker Engine manages the host path for each named volume.
+# Data is stored at: /var/lib/docker/volumes/ims_<name>/_data/
+# These volumes survive container stop/restart/rm — only destroyed by:
+#   docker-compose down -v   OR   docker volume rm <name>
 volumes:
   postgres_data:
+    driver: local
+    labels:
+      com.ims.description: "PostgreSQL 16 database files for incident_management"
+      com.ims.backup: "required"
+
   redis_data:
+    driver: local
+    labels:
+      com.ims.description: "Redis cache persistence"
+      com.ims.backup: "optional"
+
   ai_models:
+    driver: local
+    labels:
+      com.ims.description: "AI model cache and K-Means clustering artifacts"
+      com.ims.backup: "optional"

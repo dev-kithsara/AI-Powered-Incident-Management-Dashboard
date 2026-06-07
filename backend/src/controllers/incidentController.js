@@ -24,6 +24,7 @@ const actionSchema = z.object({
 const investigationSchema = z.object({
   findings:          z.string().optional(),
   evidence:          z.string().optional(),
+  evidenceFiles:     z.array(z.string()).optional(),
   investigatedBy:    z.number().int().optional(),
   investigationDate: z.string().optional()
 });
@@ -131,6 +132,8 @@ exports.create = async (req, res, next) => {
       data: { ...data, reportedBy: req.user.id, status: 'OPEN' },
       include: { reporter: { select: { id: true, name: true } } }
     });
+    // Kick off AI embedding immediately (fire-and-forget)
+    notifyAI(incident.id);
     res.status(201).json({ data: incident });
   } catch (err) { next(err); }
 };
@@ -163,7 +166,9 @@ exports.update = async (req, res, next) => {
       return res.status(422).json({ error: 'Cannot edit a closed incident' });
     }
     const data    = incidentSchema.partial().parse(req.body);
-    const updated = await prisma.incident.update({ where: { id: inc.id }, data });
+    // Reset ai_processed so the embedding gets regenerated with new content
+    const updated = await prisma.incident.update({ where: { id: inc.id }, data: { ...data, aiProcessed: false } });
+    notifyAI(inc.id);
     res.json({ data: updated });
   } catch (err) { next(err); }
 };
@@ -264,6 +269,17 @@ exports.getInvestigation = async (req, res, next) => {
       where: { incidentId: parseInt(req.params.id) }
     });
     res.json({ data: inv });
+  } catch (err) { next(err); }
+};
+
+exports.uploadEvidence = async (req, res, next) => {
+  try {
+    await getIncidentOrFail(req.params.id);
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+    const fileUrls = req.files.map(file => `/uploads/${file.filename}`);
+    res.status(200).json({ data: fileUrls });
   } catch (err) { next(err); }
 };
 

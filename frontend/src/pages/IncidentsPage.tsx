@@ -183,7 +183,7 @@ export default function IncidentsPage() {
                           <Button variant="ghost" size="icon" asChild className="h-7 w-7">
                             <Link to={`/incidents/${inc.id}`}><Eye className="h-3.5 w-3.5" /></Link>
                           </Button>
-                          {(user?.role === 'admin' || user?.role === 'manager') && (
+                          {(user?.role === 'admin' || user?.role === 'incident_manager') && (
                             <Button
                               variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
                               onClick={() => { if (confirm('Delete this incident?')) deleteMut.mutate(inc.id) }}

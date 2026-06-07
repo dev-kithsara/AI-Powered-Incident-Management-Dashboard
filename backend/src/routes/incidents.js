@@ -10,7 +10,7 @@ router.post('/',      ctrl.create);
 router.get('/export', ctrl.exportCsv);
 router.get('/:id',    ctrl.getById);
 router.put('/:id',    ctrl.update);
-router.delete('/:id', authorize('admin', 'manager'), ctrl.softDelete);
+router.delete('/:id', authorize('admin', 'incident_manager'), ctrl.softDelete);
 
 // Object 2: Actions
 router.post('/:id/actions',     ctrl.addAction);
@@ -18,8 +18,17 @@ router.get('/:id/actions',      ctrl.getActions);
 router.put('/:id/actions/:aId', ctrl.updateAction);
 
 // Object 3: Investigation
+const multer = require('multer');
+const path = require('path');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
+
 router.post('/:id/investigation', ctrl.addInvestigation);
 router.get('/:id/investigation',  ctrl.getInvestigation);
+router.post('/:id/upload-evidence', upload.array('files'), ctrl.uploadEvidence);
 
 // Object 4: Root Cause
 router.post('/:id/root-cause', ctrl.addRootCause);

@@ -8,6 +8,7 @@ import { Input }   from '@/components/ui/input'
 import { Label }   from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast }   from '@/components/ui/toaster'
+import { roleClass, roleLabel } from '@/lib/utils'
 
 export default function ProfilePage() {
   const { user, setAuth, token } = useAuthStore()
@@ -43,10 +44,8 @@ export default function ProfilePage() {
     pwMut.mutate()
   }
 
-  const roleColor =
-    user?.role === 'admin'   ? 'text-red-400 bg-red-500/10 border-red-500/25' :
-    user?.role === 'manager' ? 'text-orange-400 bg-orange-500/10 border-orange-500/25' :
-                               'text-blue-400 bg-blue-500/10 border-blue-500/25'
+  const badgeColor = roleClass(user?.role ?? 'staff')
+  const badgeLabel = roleLabel(user?.role ?? 'staff')
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -65,8 +64,8 @@ export default function ProfilePage() {
             <div>
               <h2 className="text-xl font-semibold text-foreground">{user?.name}</h2>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
-              <span className={`mt-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full border capitalize ${roleColor}`}>
-                {user?.role}
+              <span className={`mt-2 inline-block text-xs font-medium px-2 py-0.5 rounded-full border capitalize ${badgeColor}`}>
+                {badgeLabel}
               </span>
             </div>
           </div>

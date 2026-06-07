@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Brain, Activity, CheckCircle2, XCircle,
   RefreshCw, GitBranch, Target, Loader2,
+  Database, Play, Sparkles, AlertCircle,
+  ChevronRight,
 } from 'lucide-react'
 import {
   ScatterChart, Scatter as ReScatter, XAxis, YAxis, Tooltip,
@@ -47,22 +50,64 @@ const ClusterTooltip = ({ active, payload }: any) => {
   )
 }
 
+// ── Toast-style inline alert ───────────────────────────────────────────────
+const PipelineAlert = ({ msg, type }: { msg: string; type: 'success' | 'error' | 'info' }) => {
+  const styles = {
+    success: 'bg-green-500/10 border-green-500/30 text-green-400',
+    error:   'bg-red-500/10   border-red-500/30   text-red-400',
+    info:    'bg-blue-500/10  border-blue-500/30  text-blue-400',
+  }
+  const Icon = type === 'success' ? CheckCircle2 : type === 'error' ? XCircle : AlertCircle
+  return (
+    <div className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs ${styles[type]}`}>
+      <Icon className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+      <p>{msg}</p>
+    </div>
+  )
+}
+
 export default function AIDashboardPage() {
-  const { data: mapData,    isLoading: mapLoading }    = useQuery({ queryKey: ['cluster-map'],    queryFn: () => aiApi.clusterMap() })
-  const { data: statsData                              } = useQuery({ queryKey: ['cluster-stats'],  queryFn: () => aiApi.clusterStats() })
-  const { data: statusData, isLoading: statusLoading  } = useQuery({ queryKey: ['model-status'],   queryFn: () => aiApi.modelStatus() })
+  const qc = useQueryClient()
+  const [pipelineMsg, setPipelineMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  const { data: mapData,    isLoading: mapLoading }    = useQuery({ queryKey: ['cluster-map'],   queryFn: () => aiApi.clusterMap() })
+  const { data: statsData                              } = useQuery({ queryKey: ['cluster-stats'], queryFn: () => aiApi.clusterStats() })
+  const { data: statusData, isLoading: statusLoading   } = useQuery({ queryKey: ['model-status'],  queryFn: () => aiApi.modelStatus(), refetchInterval: 15_000 })
 
   const clusterMap: { clusters: ClusterPoint[]; cluster_labels: Record<string,string>; total_incidents: number; num_clusters: number } | undefined
     = mapData?.data
   const modelStatus: ModelStatus | undefined = statusData?.data
   const clusterStats = statsData?.data?.stats ?? []
 
-  // Group scatter points by cluster for separate Scatter series (recharts needs this for legend)
   const uniqueClusters = [...new Set((clusterMap?.clusters ?? []).map(c => c.cluster))].sort()
   const byCluster = uniqueClusters.reduce<Record<number, ClusterPoint[]>>((acc, k) => {
     acc[k] = (clusterMap?.clusters ?? []).filter(c => c.cluster === k)
     return acc
   }, {})
+
+  // ── Mutations ────────────────────────────────────────────────────────────
+  const showResult = (res: any, isError = false) => {
+    const msg = res?.data?.message ?? res?.message ?? (isError ? 'Operation failed — check logs.' : 'Done.')
+    setPipelineMsg({ text: msg, type: isError ? 'error' : 'success' })
+    setTimeout(() => setPipelineMsg(null), 8000)
+    qc.invalidateQueries({ queryKey: ['model-status'] })
+    qc.invalidateQueries({ queryKey: ['cluster-map'] })
+    qc.invalidateQueries({ queryKey: ['cluster-stats'] })
+  }
+
+  const seedMutation = useMutation({
+    mutationFn: () => aiApi.seedBaseline(),
+    onSuccess:  (res) => showResult(res),
+    onError:    (err: any) => showResult(err.response ?? err, true),
+  })
+
+  const pipelineMutation = useMutation({
+    mutationFn: () => aiApi.runPipeline(),
+    onSuccess:  (res) => showResult(res),
+    onError:    (err: any) => showResult(err.response ?? err, true),
+  })
+
+  const isRunning = seedMutation.isPending || pipelineMutation.isPending
 
   return (
     <div className="space-y-8">
@@ -75,6 +120,75 @@ export default function AIDashboardPage() {
           NLP similarity · K-Means clustering · Predictive risk scoring
         </p>
       </div>
+
+      {/* ── Model Management Panel ──────────────────────────────────────── */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> Model Management
+          </CardTitle>
+          <CardDescription className="text-xs">
+            The Gradient Boosting classifier needs ≥ 10 closed incidents with embeddings to train.
+            Use the buttons below to seed baseline data or manually trigger the AI pipeline.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            {/* Seed Baseline Data */}
+            <button
+              id="seed-baseline-btn"
+              onClick={() => { setPipelineMsg({ text: 'Seeding 30 baseline incidents and running the pipeline — this may take 30–60 seconds…', type: 'info' }); seedMutation.mutate() }}
+              disabled={isRunning}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {seedMutation.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Database className="h-4 w-4" />}
+              {seedMutation.isPending ? 'Seeding…' : 'Seed Baseline Data'}
+            </button>
+
+            {/* Run Pipeline Manually */}
+            <button
+              id="run-pipeline-btn"
+              onClick={() => { setPipelineMsg({ text: 'Running pipeline: embedding → clustering → training…', type: 'info' }); pipelineMutation.mutate() }}
+              disabled={isRunning}
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {pipelineMutation.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Play className="h-4 w-4 text-primary" />}
+              {pipelineMutation.isPending ? 'Running…' : 'Run AI Pipeline Now'}
+            </button>
+          </div>
+
+          {/* How it works — expandable note */}
+          <div className="rounded-lg bg-card/60 border border-border/50 px-3 py-2 text-xs text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground flex items-center gap-1.5">
+              <ChevronRight className="h-3 w-3 text-primary" /> How does Gradient Boosting work here?
+            </p>
+            <p>
+              <span className="text-foreground font-medium">Training:</span> The system collects all CLOSED incidents
+              that have AI embeddings. Their sentence-transformer vectors (384 dimensions) are combined with
+              one-hot encoded category/department features, then a GradientBoostingClassifier learns to predict
+              severity (LOW/MEDIUM/HIGH/CRITICAL). Isotonic calibration is applied so confidence scores are realistic.
+            </p>
+            <p>
+              <span className="text-foreground font-medium">Prediction:</span> When a new incident is created,
+              the same feature extraction runs. The calibrated model outputs a probability distribution across all
+              4 classes. The risk label is <code className="bg-border/50 px-1 rounded">argmax(proba)</code> and
+              the risk score is the probability-weighted average
+              (<code className="bg-border/50 px-1 rounded">Σ P(class) × score(class)</code>).
+            </p>
+            <p>
+              <span className="text-foreground font-medium">Auto-retrain:</span> The scheduler runs every 5 minutes.
+              When new incidents are created and closed, embeddings are generated automatically and the model retrains.
+            </p>
+          </div>
+
+          {/* Result message */}
+          {pipelineMsg && <PipelineAlert msg={pipelineMsg.text} type={pipelineMsg.type} />}
+        </CardContent>
+      </Card>
 
       {/* Model Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -130,9 +244,10 @@ export default function AIDashboardPage() {
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Risk Classifier</p>
                     <p className="text-lg font-bold text-foreground mt-1">Gradient Boosting</p>
-                    {modelStatus?.training_samples && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{modelStatus.training_samples} samples</p>
-                    )}
+                    {modelStatus?.classifier_trained
+                      ? <p className="text-xs text-muted-foreground mt-0.5">{modelStatus.training_samples} training samples</p>
+                      : <p className="text-xs text-yellow-400/80 mt-0.5">Needs ≥ 10 closed incidents</p>
+                    }
                   </div>
                   {modelStatus?.classifier_trained
                     ? <CheckCircle2 className="h-6 w-6 text-green-400" />
@@ -142,6 +257,15 @@ export default function AIDashboardPage() {
                   <p className="text-xs text-muted-foreground mt-3">
                     CV Accuracy: <span className="text-foreground font-medium">{(modelStatus.accuracy * 100).toFixed(1)}%</span>
                   </p>
+                )}
+                {!modelStatus?.classifier_trained && (
+                  <button
+                    onClick={() => { setPipelineMsg({ text: 'Seeding baseline data…', type: 'info' }); seedMutation.mutate() }}
+                    disabled={isRunning}
+                    className="mt-3 w-full text-[10px] font-semibold text-primary hover:underline disabled:opacity-50"
+                  >
+                    → Seed baseline data now
+                  </button>
                 )}
               </CardContent>
             </Card>
@@ -162,6 +286,13 @@ export default function AIDashboardPage() {
                 {clusterMap && ` ${clusterMap.total_incidents} incidents · ${clusterMap.num_clusters} clusters`}
               </CardDescription>
             </div>
+            <button
+              onClick={() => { qc.invalidateQueries({ queryKey: ['cluster-map'] }); qc.invalidateQueries({ queryKey: ['cluster-stats'] }) }}
+              className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Refresh cluster map"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
           </div>
         </CardHeader>
         <CardContent>
@@ -176,7 +307,7 @@ export default function AIDashboardPage() {
             <div className="flex flex-col items-center justify-center h-80 gap-3">
               <RefreshCw className="h-10 w-10 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">No cluster data yet.</p>
-              <p className="text-xs text-muted-foreground">Close incidents to trigger AI processing.</p>
+              <p className="text-xs text-muted-foreground">Use "Seed Baseline Data" above to get started.</p>
             </div>
           ) : (
             <>
@@ -196,7 +327,6 @@ export default function AIDashboardPage() {
                   <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{v}</span>} />
                 </ScatterChart>
               </ResponsiveContainer>
-              {/* Severity legend */}
               <div className="flex gap-4 mt-2 justify-center flex-wrap">
                 {Object.entries(SEV_DOT).map(([sev, col]) => (
                   <div key={sev} className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -263,11 +393,26 @@ export default function AIDashboardPage() {
                 <StatRow label="Last Trained"   value={modelStatus.trained_at ? new Date(modelStatus.trained_at).toLocaleString() : undefined} />
               </div>
             ) : (
-              <div className="flex flex-col items-center py-8 text-center gap-3">
-                <XCircle className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">
-                  Classifier not yet trained.<br />Need ≥ 10 closed incidents.
-                </p>
+              <div className="flex flex-col items-center py-8 text-center gap-4">
+                <XCircle className="h-10 w-10 text-yellow-400/60" />
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Classifier not yet trained.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Need ≥ 10 closed incidents with embeddings.
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setPipelineMsg({ text: 'Seeding baseline data and training…', type: 'info' }); seedMutation.mutate() }}
+                  disabled={isRunning}
+                  className="flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/30 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 disabled:opacity-50 transition-all"
+                >
+                  {seedMutation.isPending
+                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Seeding…</>
+                    : <><Database className="h-3.5 w-3.5" /> Seed &amp; Train Now</>
+                  }
+                </button>
               </div>
             )}
           </CardContent>
