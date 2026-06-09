@@ -10,6 +10,9 @@ import AIDashboardPage      from '@/pages/AIDashboardPage'
 import PredictiveRiskPage   from '@/pages/PredictiveRiskPage'
 import UsersPage            from '@/pages/UsersPage'
 import ProfilePage          from '@/pages/ProfilePage'
+import LessonsLibraryPage  from '@/pages/LessonsLibraryPage'
+import RootCausePage        from '@/pages/RootCausePage'
+
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore(s => s.token)
@@ -70,6 +73,18 @@ export default function App() {
         <Route path="/predictive-risk" element={
           <ProtectedRoute>
             <Layout><PredictiveRiskPage /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/lessons-learned" element={
+          <ProtectedRoute>
+            <Layout><LessonsLibraryPage /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/root-causes" element={
+          <ProtectedRoute>
+            <Layout><RootCausePage /></Layout>
           </ProtectedRoute>
         } />
 

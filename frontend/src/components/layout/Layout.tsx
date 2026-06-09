@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, AlertTriangle, Plus, Brain,
   Users, LogOut, Settings, ChevronRight, Activity,
-  ShieldAlert, TrendingUp,
+  ShieldAlert, TrendingUp, BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,8 @@ const navItems: NavItem[] = [
   { to: '/incidents/new',   icon: Plus,            label: 'New Incident' },
   { to: '/ai-dashboard',    icon: Brain,           label: 'AI Analytics' },
   { to: '/predictive-risk', icon: TrendingUp,      label: 'Risk Analysis' },
+  { to: '/lessons-learned', icon: BookOpen,        label: 'Lessons Library' },
+  { to: '/root-causes',      icon: Activity,        label: 'Root Causes' },
   { to: '/users',           icon: Users,           label: 'Users', adminOnly: true },
 ]
 

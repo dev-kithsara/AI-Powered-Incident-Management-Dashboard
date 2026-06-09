@@ -58,6 +58,8 @@ export const incidentsApi = {
     api.delete(`/incidents/${id}`),
   export: (params?: IncidentListParams) =>
     api.get('/incidents/export', { params, responseType: 'blob' }),
+  getLessonsLearned: (search?: string) =>
+    api.get<{ data: Incident[] }>('/incidents/lessons-learned', { params: { search } }),
 
   // Object 2: Actions
   addAction:    (id: number, data: Partial<IncidentAction>) =>
@@ -104,6 +106,12 @@ export const incidentsApi = {
   // Timeline
   getTimeline: (id: number) =>
     api.get<{ data: TimelineEvent[] }>(`/incidents/${id}/timeline`),
+
+  getRootCauseAnalytics: (params?: { startDate?: string; endDate?: string; department?: string; severity?: string }) =>
+    api.get<{ data: any }>('/incidents/root-cause-analytics', { params }),
+
+  getControlEffectiveness: () =>
+    api.get<{ data: any[] }>('/incidents/control-effectiveness'),
 }
 
 // ── Stats ──────────────────────────────────────────────────────────────────
@@ -139,4 +147,6 @@ export const aiApi = {
   riskAnalysis: () => api.get<RiskAnalysis>('/ai/risk-analysis'),
   runPipeline:  () => api.post('/ai/run-pipeline'),
   seedBaseline: () => api.post('/ai/seed-baseline'),
+  recommendLessons: (data: { title: string; description: string; category?: string; department?: string }) =>
+    api.post<{ recommendations: any[] }>('/ai/lessons-learned/recommend', data),
 }

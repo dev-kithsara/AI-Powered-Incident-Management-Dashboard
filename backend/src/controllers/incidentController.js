@@ -124,6 +124,42 @@ exports.list = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.listLessonsLearned = async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    const where = {
+      status: 'CLOSED',
+      deletedAt: null,
+      closure: {
+        isNot: null,
+        lessonsLearned: {
+          not: ''
+        }
+      }
+    };
+
+    if (search) {
+      where.OR = [
+        { title:       { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { closure: { lessonsLearned: { contains: search, mode: 'insensitive' } } }
+      ];
+    }
+
+    const incidents = await prisma.incident.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        closure: true,
+        rootCause: true,
+        reporter: { select: { id: true, name: true } }
+      }
+    });
+
+    res.json({ data: incidents });
+  } catch (err) { next(err); }
+};
+
 // ── Create ─────────────────────────────────────────────────────────────────
 exports.create = async (req, res, next) => {
   try {
@@ -419,3 +455,230 @@ exports.getTimeline = async (req, res, next) => {
     res.json({ data: timeline });
   } catch (err) { next(err); }
 };
+
+exports.getRootCauseAnalytics = async (req, res, next) => {
+  try {
+    const { startDate, endDate, department, severity } = req.query;
+
+    const where = {
+      deletedAt: null,
+      rootCause: {
+        isNot: null
+      }
+    };
+
+    if (department) {
+      where.department = department;
+    }
+    if (severity) {
+      where.severity = severity;
+    }
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.createdAt.lte = new Date(endDate);
+      }
+    }
+
+    const incidents = await prisma.incident.findMany({
+      where,
+      include: {
+        rootCause: true
+      }
+    });
+
+    const totalIncidents = incidents.length;
+
+    const categoriesMap = {};
+    incidents.forEach(inc => {
+      const cat = inc.rootCause.rootCauseCategory || 'Unknown';
+      if (!categoriesMap[cat]) {
+        categoriesMap[cat] = {
+          category: cat,
+          count: 0,
+          subcategories: {},
+          incidents: []
+        };
+      }
+      categoriesMap[cat].count++;
+      
+      const sub = inc.category || 'Unassigned';
+      if (!categoriesMap[cat].subcategories[sub]) {
+        categoriesMap[cat].subcategories[sub] = 0;
+      }
+      categoriesMap[cat].subcategories[sub]++;
+
+      categoriesMap[cat].incidents.push({
+        id: inc.id,
+        title: inc.title,
+        severity: inc.severity,
+        department: inc.department,
+        category: inc.category,
+        createdAt: inc.createdAt
+      });
+    });
+
+    const distribution = Object.values(categoriesMap).map(item => {
+      const subList = Object.entries(item.subcategories).map(([name, count]) => ({
+        name,
+        count
+      })).sort((a, b) => b.count - a.count);
+
+      return {
+        category: item.category,
+        count: item.count,
+        percentage: totalIncidents > 0 ? parseFloat(((item.count / totalIncidents) * 100).toFixed(1)) : 0,
+        subcategories: subList,
+        incidents: item.incidents.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
+      };
+    }).sort((a, b) => b.count - a.count);
+
+    const now = new Date();
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const oneEightyDaysAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+
+    const trendWhere = {
+      deletedAt: null,
+      rootCause: { isNot: null }
+    };
+    if (department) trendWhere.department = department;
+    if (severity) trendWhere.severity = severity;
+
+    const allIncidentsForTrends = await prisma.incident.findMany({
+      where: trendWhere,
+      include: { rootCause: true }
+    });
+
+    const recentCounts = {};
+    const priorCounts = {};
+
+    allIncidentsForTrends.forEach(inc => {
+      const cat = inc.rootCause.rootCauseCategory || 'Unknown';
+      const created = new Date(inc.createdAt);
+      if (created >= ninetyDaysAgo) {
+        recentCounts[cat] = (recentCounts[cat] || 0) + 1;
+      } else if (created >= oneEightyDaysAgo && created < ninetyDaysAgo) {
+        priorCounts[cat] = (priorCounts[cat] || 0) + 1;
+      }
+    });
+
+    let highestIncreaseCategory = 'None';
+    let highestIncreasePercentage = 0;
+
+    Object.keys(recentCounts).forEach(cat => {
+      const recent = recentCounts[cat] || 0;
+      const prior = priorCounts[cat] || 0;
+      let pct = 0;
+      if (prior > 0) {
+        pct = Math.round(((recent - prior) / prior) * 100);
+      } else if (recent > 0) {
+        pct = 100;
+      }
+      if (pct > highestIncreasePercentage) {
+        highestIncreasePercentage = pct;
+        highestIncreaseCategory = cat;
+      }
+    });
+
+    const mostCommonRootCause = distribution.length > 0 ? distribution[0].category : 'None';
+
+    res.json({
+      data: {
+        totalIncidents,
+        mostCommonRootCause,
+        highestIncrease: {
+          category: highestIncreaseCategory,
+          percentage: highestIncreasePercentage
+        },
+        distribution
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getControlEffectiveness = async (req, res, next) => {
+  try {
+    const incidents = await prisma.incident.findMany({
+      where: {
+        deletedAt: null,
+        controls: {
+          some: {}
+        }
+      },
+      include: {
+        controls: true,
+        review: true
+      }
+    });
+
+    const departments = ['IT', 'HR', 'Finance', 'Operations', 'Facilities', 'Security'];
+    const controlTypes = ['Preventive', 'Detective', 'Corrective'];
+
+    const grid = {};
+    departments.forEach(dept => {
+      grid[dept] = {};
+      controlTypes.forEach(type => {
+        grid[dept][type] = {
+          sum: 0,
+          count: 0,
+          avg: 0,
+          incidents: []
+        };
+      });
+    });
+
+    incidents.forEach(inc => {
+      const dept = inc.department || 'Other';
+      if (!grid[dept]) {
+        grid[dept] = {};
+        controlTypes.forEach(type => {
+          grid[dept][type] = { sum: 0, count: 0, avg: 0, incidents: [] };
+        });
+      }
+
+      const rating = inc.review?.effectivenessRating;
+
+      inc.controls.forEach(ctrl => {
+        const type = ctrl.controlType;
+        if (grid[dept][type]) {
+          if (rating !== null && rating !== undefined) {
+            grid[dept][type].sum += rating;
+            grid[dept][type].count += 1;
+          }
+          grid[dept][type].incidents.push({
+            id: inc.id,
+            title: inc.title,
+            severity: inc.severity,
+            rating: rating || 'Unrated'
+          });
+        }
+      });
+    });
+
+    const data = [];
+    Object.keys(grid).forEach(dept => {
+      Object.keys(grid[dept]).forEach(type => {
+        const cell = grid[dept][type];
+        cell.avg = cell.count > 0 ? parseFloat((cell.sum / cell.count).toFixed(1)) : 0;
+        data.push({
+          department: dept,
+          controlType: type,
+          averageRating: cell.avg,
+          totalControls: cell.incidents.length,
+          ratedControls: cell.count,
+          incidents: cell.incidents.slice(0, 5)
+        });
+      });
+    });
+
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+};
+

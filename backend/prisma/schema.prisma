@@ -157,13 +157,14 @@ model IncidentClosure {
 }
 
 model AiEmbedding {
-  id         Int      @id @default(autoincrement())
-  incidentId Int      @unique @map("incident_id")
-  umapX      Float?   @map("umap_x")
-  umapY      Float?   @map("umap_y")
-  textHash   String?  @map("text_hash") @db.VarChar(64)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id         Int                              @id @default(autoincrement())
+  incidentId Int                              @unique @map("incident_id")
+  embedding  Unsupported("vector(384)")?
+  umapX      Float?                           @map("umap_x")
+  umapY      Float?                           @map("umap_y")
+  textHash   String?                          @map("text_hash") @db.VarChar(64)
+  createdAt  DateTime                         @default(now()) @map("created_at")
+  updatedAt  DateTime                         @updatedAt @map("updated_at")
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
@@ -182,4 +183,19 @@ model AuditLog {
   user User? @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
+}
+
+model ModelMetrics {
+  id              Int      @id @default(autoincrement())
+  modelType       String   @map("model_type") @db.VarChar(50)
+  accuracy        Float?
+  precisionScore  Float?   @map("precision_score")
+  recallScore     Float?   @map("recall_score")
+  f1Score         Float?   @map("f1_score")
+  trainingSamples Int?     @map("training_samples")
+  optimalK        Int?     @map("optimal_k")
+  silhouetteScore Float?   @map("silhouette_score")
+  trainedAt       DateTime @default(now()) @map("trained_at")
+
+  @@map("model_metrics")
 }
