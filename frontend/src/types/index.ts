@@ -1,7 +1,7 @@
 // ── Core Entities ──────────────────────────────────────────────────────────
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'CLOSED'
-export type UserRole = 'admin' | 'incident_manager' | 'investigator' | 'risk_analyst' | 'safety_officer' | 'staff'
+export type UserRole = 'admin' | 'incident_manager' | 'investigator' | 'risk_analyst'
 
 export interface User {
   id:        number
@@ -26,6 +26,7 @@ export interface Incident {
   aiProcessed:        boolean
   predictedRiskScore?: number
   clusterId?:         number
+  investigatorId?:    number | null
   deletedAt?:         string
   createdAt:          string
   updatedAt:          string

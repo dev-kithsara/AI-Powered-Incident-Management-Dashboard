@@ -18,15 +18,15 @@ async function main() {
     update: { password: hashedPassword },
     create: { name: 'Sarah Johnson', email: 'manager@ims.com', password: hashedPassword, role: 'incident_manager' }
   });
-  const staff = await prisma.user.upsert({
-    where: { email: 'staff@ims.com' },
+  const investigator = await prisma.user.upsert({
+    where: { email: 'investigator@ims.com' },
     update: { password: hashedPassword },
-    create: { name: 'David Lee', email: 'staff@ims.com', password: hashedPassword, role: 'staff' }
+    create: { name: 'David Miller', email: 'investigator@ims.com', password: hashedPassword, role: 'investigator' }
   });
-  const staff2 = await prisma.user.upsert({
-    where: { email: 'staff2@ims.com' },
+  const analyst = await prisma.user.upsert({
+    where: { email: 'analyst@ims.com' },
     update: { password: hashedPassword },
-    create: { name: 'Priya Sharma', email: 'staff2@ims.com', password: hashedPassword, role: 'staff' }
+    create: { name: 'Emily Davis', email: 'analyst@ims.com', password: hashedPassword, role: 'risk_analyst' }
   });
 
   console.log('✅ Users created');
@@ -53,7 +53,7 @@ async function main() {
       title: 'Phishing Email Campaign Targeting HR Staff',
       description: 'Mass phishing campaign sent to 45 HR employees impersonating the CEO. 3 employees clicked the malicious link and entered credentials. Attackers gained access to payroll system briefly before detection. Multi-factor authentication was not enabled on affected accounts.',
       severity: 'HIGH', category: 'Cyber Security', department: 'Human Resources',
-      location: 'HR Department', status: 'CLOSED', reportedBy: staff.id
+      location: 'HR Department', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Brute Force Attack on VPN Gateway',
@@ -71,7 +71,7 @@ async function main() {
       title: 'Unauthorized USB Device Connected to Workstation',
       description: 'DLP system detected an unauthorized USB storage device connected to an accounting workstation. 2.4GB of financial data was copied before the device was blocked. Employee claimed it was for legitimate work-from-home purposes but had not followed data handling procedures.',
       severity: 'HIGH', category: 'Cyber Security', department: 'Accounting',
-      location: 'Accounting Department', status: 'UNDER_REVIEW', reportedBy: staff2.id
+      location: 'Accounting Department', status: 'UNDER_REVIEW', reportedBy: investigator.id
     },
 
     // ── GROUP B: IT Infrastructure / Server ───────────────────────────────
@@ -85,13 +85,13 @@ async function main() {
       title: 'Web Server Memory Leak Causing Service Degradation',
       description: 'Node.js application server experienced progressive memory leak due to unclosed database connections in background job processor. Server memory climbed from 40% to 98% over 6 hours causing severe slowdowns. Service response time increased from 200ms to 8 seconds before automatic restart triggered.',
       severity: 'HIGH', category: 'Infrastructure', department: 'Engineering',
-      location: 'Cloud Infrastructure (AWS)', status: 'CLOSED', reportedBy: staff.id
+      location: 'Cloud Infrastructure (AWS)', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Network Switch Failure Causing Partial Office Outage',
       description: 'Core network switch in Building B failed due to overheating. 80 employees lost network connectivity including VoIP phones, printers, and internet access. Failure caused by blocked air vents and ambient temperature exceeding operating threshold. Temporary patch cable workaround deployed within 45 minutes.',
       severity: 'HIGH', category: 'Infrastructure', department: 'IT',
-      location: 'Building B - Server Room', status: 'CLOSED', reportedBy: staff2.id
+      location: 'Building B - Server Room', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'SSL Certificate Expiry Causing E-commerce Downtime',
@@ -111,7 +111,7 @@ async function main() {
       title: 'Employee Slip and Fall on Wet Lobby Floor',
       description: 'Employee slipped on wet floor in the main lobby after a wet mop was left unattended without wet floor warning signs. Suffered minor contusion on right knee and wrist sprain. First aid administered on site. Employee was able to walk unaided. Incident occurred during lunch peak period.',
       severity: 'MEDIUM', category: 'Health & Safety', department: 'Facilities',
-      location: 'Main Lobby - Ground Floor', status: 'CLOSED', reportedBy: staff.id
+      location: 'Main Lobby - Ground Floor', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Contractor Trip and Fall from Scaffolding',
@@ -123,13 +123,13 @@ async function main() {
       title: 'Warehouse Worker Slip on Spilled Hydraulic Oil',
       description: 'Warehouse operative slipped on hydraulic oil leak from a forklift truck. Worker fell backwards striking lower back on concrete floor. Significant lumbar pain reported. Taken to hospital via ambulance. Hydraulic system fault on forklift had been reported 3 days prior but not yet repaired.',
       severity: 'HIGH', category: 'Health & Safety', department: 'Operations',
-      location: 'Warehouse - Bay 7', status: 'UNDER_REVIEW', reportedBy: staff2.id
+      location: 'Warehouse - Bay 7', status: 'UNDER_REVIEW', reportedBy: investigator.id
     },
     {
       title: 'Office Worker Tripped Over Trailing Phone Cable',
       description: 'Office employee tripped over a telephone cable routed across a walkway between desks. Fell forward hitting face on desk corner. Required 3 stitches to forehead laceration. Cable had been a known hazard and reported to facilities team 2 weeks earlier without action taken.',
       severity: 'MEDIUM', category: 'Health & Safety', department: 'Sales',
-      location: 'Open Plan Office - Sales Floor', status: 'CLOSED', reportedBy: staff.id
+      location: 'Open Plan Office - Sales Floor', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Visitor Fall on Icy Car Park Surface',
@@ -155,7 +155,7 @@ async function main() {
       title: 'Paper Documents with Patient Data Found in Public Bin',
       description: 'Members of the public found printed documents containing patient consultation notes and personal details in a street-side recycling bin. Documents traced back to a locum GP who had printed patient notes and failed to shred them before disposal. Regulatory breach under UK GDPR.',
       severity: 'HIGH', category: 'Data Privacy', department: 'Medical',
-      location: 'External - Public Area', status: 'UNDER_REVIEW', reportedBy: staff2.id
+      location: 'External - Public Area', status: 'UNDER_REVIEW', reportedBy: investigator.id
     },
     {
       title: 'Laptop Stolen Containing Unencrypted Customer Data',
@@ -169,7 +169,7 @@ async function main() {
       title: 'Chemical Solvent Spill in Manufacturing Area',
       description: 'A 25-litre drum of industrial solvent (isopropyl alcohol) tipped over during forklift loading operation. Liquid spread across approximately 15 square metres of factory floor. Area evacuated. Emergency spill kit deployed. Local fire brigade notified as per chemical spill protocol. No injuries.',
       severity: 'HIGH', category: 'Environmental', department: 'Manufacturing',
-      location: 'Factory Floor - Chemical Storage Zone', status: 'CLOSED', reportedBy: staff.id
+      location: 'Factory Floor - Chemical Storage Zone', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Refrigerant Gas Leak in Server Room HVAC Unit',
@@ -181,7 +181,7 @@ async function main() {
       title: 'Oil Spill from Delivery Vehicle in Loading Bay',
       description: 'Delivery truck experienced catastrophic engine oil failure in the loading bay resulting in approximately 40 litres of engine oil spillage. Oil spread towards a nearby storm drain. Drain blocked with absorbent socks before contamination reached water course. Environmental agency notified.',
       severity: 'HIGH', category: 'Environmental', department: 'Logistics',
-      location: 'Loading Bay 3', status: 'CLOSED', reportedBy: staff2.id
+      location: 'Loading Bay 3', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Battery Acid Leak from UPS Systems',
@@ -207,13 +207,13 @@ async function main() {
       title: 'Health & Safety Training Records Non-Compliant',
       description: 'Regulatory audit found that 68 employees in the manufacturing division had not completed mandatory annual health and safety refresher training within required timeframes. Records had not been updated in the LMS following a system migration. Regulatory improvement notice issued. 30-day remediation deadline given.',
       severity: 'MEDIUM', category: 'HR & Compliance', department: 'Human Resources',
-      location: 'Manufacturing Division', status: 'CLOSED', reportedBy: staff.id
+      location: 'Manufacturing Division', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'GDPR Subject Access Request Response Deadline Missed',
       description: 'A subject access request submitted by a former employee was not identified in the customer service ticket queue due to incorrect categorisation. The mandatory 30-day response deadline was missed by 12 days. ICO complaint subsequently filed by the data subject. DPO notified. Formal response issued.',
       severity: 'MEDIUM', category: 'HR & Compliance', department: 'Legal',
-      location: 'Legal & Compliance Team', status: 'CLOSED', reportedBy: staff2.id
+      location: 'Legal & Compliance Team', status: 'CLOSED', reportedBy: investigator.id
     },
 
     // ── GROUP G: Fire Safety ──────────────────────────────────────────────
@@ -227,13 +227,13 @@ async function main() {
       title: 'Electrical Fire in Office Server Cupboard',
       description: 'Small electrical fire started in an office server cupboard due to overloaded power strip running several unmanaged switches and a printer. Smoke detected by building alarm. Staff evacuated. Fire extinguished by facilities manager using CO2 extinguisher before fire brigade arrival. Minor smoke damage to equipment.',
       severity: 'HIGH', category: 'Fire Safety', department: 'IT',
-      location: 'Office Block - 2nd Floor Server Cupboard', status: 'CLOSED', reportedBy: staff.id
+      location: 'Office Block - 2nd Floor Server Cupboard', status: 'CLOSED', reportedBy: investigator.id
     },
     {
       title: 'Fire Exit Blocked by Delivery Pallets',
       description: 'During a routine fire safety inspection it was found that 3 emergency fire exits in the warehouse were blocked by delivery pallets. Pallets had been stacked against exits by an agency worker unaware of fire safety regulations. Exits cleared immediately. Agency worker given formal warning. Refresher training arranged.',
       severity: 'MEDIUM', category: 'Fire Safety', department: 'Operations',
-      location: 'Warehouse - South Wing', status: 'CLOSED', reportedBy: staff2.id
+      location: 'Warehouse - South Wing', status: 'CLOSED', reportedBy: investigator.id
     },
   ];
 
@@ -327,10 +327,10 @@ async function main() {
   console.log(`✅ Added root causes, reviews & closures to ${rcCount} closed incidents`);
   console.log('');
   console.log('🎉 Seed complete! Login credentials:');
-  console.log('   admin@ims.com   / Admin@123  (Admin)');
-  console.log('   manager@ims.com / Admin@123  (Manager)');
-  console.log('   staff@ims.com   / Admin@123  (Staff)');
-  console.log('   staff2@ims.com  / Admin@123  (Staff)');
+  console.log('   admin@ims.com        / Admin@123  (Admin)');
+  console.log('   manager@ims.com      / Admin@123  (Manager)');
+  console.log('   investigator@ims.com  / Admin@123  (Investigator)');
+  console.log('   analyst@ims.com       / Admin@123  (Risk Analyst)');
   console.log('');
   console.log('📊 Data seeded:');
   console.log(`   ${created} incidents (Cyber Security, IT Infrastructure, H&S, Data Privacy, Environmental, HR, Fire Safety)`);

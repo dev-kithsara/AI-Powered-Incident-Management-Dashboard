@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast }    from '@/components/ui/toaster'
 import { severityClass, statusClass, formatDateTime } from '@/lib/utils'
+import { useAuthStore } from '@/store/authStore'
 import type { SimilarIncident } from '@/types'
 
 type Tab = 'overview' | 'actions' | 'investigation' | 'root-cause' | 'controls' | 'review' | 'close'
@@ -30,6 +31,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 ]
 
 export default function IncidentDetailPage() {
+  const user        = useAuthStore(s => s.user)
   const { id }      = useParams<{ id: string }>()
   const incId       = parseInt(id!)
   const navigate    = useNavigate()
@@ -260,7 +262,7 @@ export default function IncidentDetailPage() {
                   ))}
                   {!inc.actions?.length && <p className="text-sm text-muted-foreground text-center py-4">No actions recorded yet</p>}
                 </div>
-                {inc.status !== 'CLOSED' && (
+                {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
                   <div className="space-y-3 pt-3 border-t border-border/50">
                     <Label>Add Action</Label>
                     <Textarea value={actText} onChange={e => setActText(e.target.value)} placeholder="Describe the action taken..." rows={3} />
@@ -290,11 +292,11 @@ export default function IncidentDetailPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Findings</Label>
-                  <Textarea value={invFindings} onChange={e => setInvFindings(e.target.value)} placeholder="Document investigation findings..." rows={4} disabled={inc.status === 'CLOSED'} />
+                  <Textarea value={invFindings} onChange={e => setInvFindings(e.target.value)} placeholder="Document investigation findings..." rows={4} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager' && user?.role !== 'investigator')} />
                 </div>
                 <div className="space-y-2">
                   <Label>Evidence Description</Label>
-                  <Textarea value={invEvidence} onChange={e => setInvEvidence(e.target.value)} placeholder="List evidence collected..." rows={3} disabled={inc.status === 'CLOSED'} />
+                  <Textarea value={invEvidence} onChange={e => setInvEvidence(e.target.value)} placeholder="List evidence collected..." rows={3} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager' && user?.role !== 'investigator')} />
                 </div>
                 <div className="space-y-2">
                   <Label>Evidence Files (Photos, Documents)</Label>
@@ -307,7 +309,7 @@ export default function IncidentDetailPage() {
                           ) : (
                             <div className="flex flex-col items-center p-2"><Paperclip className="h-6 w-6 mb-1 text-muted-foreground"/><span className="text-xs break-all text-center">{url.split('/').pop()}</span></div>
                           )}
-                          {inc.status !== 'CLOSED' && (
+                          {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
                             <button onClick={() => setInvEvidenceFiles(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                               <X className="h-3 w-3 text-white" />
                             </button>
@@ -316,7 +318,7 @@ export default function IncidentDetailPage() {
                       ))}
                     </div>
                   )}
-                  {inc.status !== 'CLOSED' && (
+                  {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
                     <div className="flex gap-2 items-center">
                       <Input type="file" multiple onChange={e => {
                         if (e.target.files) setSelectedFiles(Array.from(e.target.files))
@@ -327,7 +329,7 @@ export default function IncidentDetailPage() {
                     </div>
                   )}
                 </div>
-                {inc.status !== 'CLOSED' && (
+                {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
                   <Button onClick={() => addInvMut.mutate()} disabled={addInvMut.isPending || uploadMut.isPending} className="mt-4">
                     {addInvMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Investigation'}
                   </Button>
@@ -343,7 +345,7 @@ export default function IncidentDetailPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Root Cause Category</Label>
-                  <Select value={rcCat} onValueChange={setRcCat} disabled={inc.status === 'CLOSED'}>
+                  <Select value={rcCat} onValueChange={setRcCat} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager' && user?.role !== 'investigator')}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
                       {['Human Error','System Failure','Process Gap','External Factor','Equipment Failure','Unknown'].map(c =>
@@ -353,13 +355,13 @@ export default function IncidentDetailPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Textarea value={rcDesc} onChange={e => setRcDesc(e.target.value)} placeholder="Describe the root cause..." rows={4} disabled={inc.status === 'CLOSED'} />
+                  <Textarea value={rcDesc} onChange={e => setRcDesc(e.target.value)} placeholder="Describe the root cause..." rows={4} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager' && user?.role !== 'investigator')} />
                 </div>
                 <div className="space-y-2">
                   <Label>Contributing Factors</Label>
-                  <Textarea value={rcFactors} onChange={e => setRcFactors(e.target.value)} placeholder="List contributing factors..." rows={3} disabled={inc.status === 'CLOSED'} />
+                  <Textarea value={rcFactors} onChange={e => setRcFactors(e.target.value)} placeholder="List contributing factors..." rows={3} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager' && user?.role !== 'investigator')} />
                 </div>
-                {inc.status !== 'CLOSED' && (
+                {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
                   <Button onClick={() => addRcMut.mutate()} disabled={!rcCat || !rcDesc || addRcMut.isPending}>
                     {addRcMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Root Cause'}
                   </Button>
@@ -383,7 +385,7 @@ export default function IncidentDetailPage() {
                   </div>
                 ))}
                 {!inc.controls?.length && <p className="text-sm text-muted-foreground text-center py-4">No controls added yet</p>}
-                {inc.status !== 'CLOSED' && (
+                {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator' || user?.role === 'risk_analyst') && inc.status !== 'CLOSED' && (
                   <div className="space-y-3 pt-3 border-t border-border/50">
                     <div className="flex gap-2">
                       <Select value={ctrlType} onValueChange={setCtrlType}>
@@ -412,24 +414,28 @@ export default function IncidentDetailPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Review Notes</Label>
-                  <Textarea value={rvNotes} onChange={e => setRvNotes(e.target.value)} placeholder="Document the review findings and outcomes..." rows={5} disabled={inc.status === 'CLOSED'} />
+                  <Textarea value={rvNotes} onChange={e => setRvNotes(e.target.value)} placeholder="Document the review findings and outcomes..." rows={5} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager')} />
                 </div>
                 <div className="space-y-2">
                   <Label>Effectiveness Rating (1–5)</Label>
                   <div className="flex gap-2">
-                    {[1,2,3,4,5].map(n => (
-                      <button key={n} type="button"
-                        onClick={() => setRvRating(String(n))}
-                        className={`h-10 w-10 rounded-lg text-sm font-bold border transition-colors ${
-                          rvRating === String(n)
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-accent border-border text-muted-foreground hover:text-foreground'
-                        }`}
-                      >{n}</button>
-                    ))}
+                    {[1,2,3,4,5].map(n => {
+                      const isDisabled = inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager')
+                      return (
+                        <button key={n} type="button"
+                          onClick={() => !isDisabled && setRvRating(String(n))}
+                          disabled={isDisabled}
+                          className={`h-10 w-10 rounded-lg text-sm font-bold border transition-colors ${
+                            rvRating === String(n)
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-accent border-border text-muted-foreground hover:text-foreground'
+                          }`}
+                        >{n}</button>
+                      )
+                    })}
                   </div>
                 </div>
-                {inc.status !== 'CLOSED' && (
+                {(user?.role === 'admin' || user?.role === 'incident_manager') && inc.status !== 'CLOSED' && (
                   <Button onClick={() => addReviewMut.mutate()} disabled={!rvNotes || addReviewMut.isPending}>
                     {addReviewMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit Review'}
                   </Button>
@@ -451,7 +457,7 @@ export default function IncidentDetailPage() {
                       <p className="text-xs opacity-80 mt-0.5">{inc.closure?.closureSummary}</p>
                     </div>
                   </div>
-                ) : (
+                ) : (user?.role === 'admin' || user?.role === 'incident_manager') ? (
                   <>
                     {!inc.review && (
                       <div className="flex items-center gap-3 rounded-lg bg-yellow-500/10 border border-yellow-500/25 p-3 text-yellow-400 text-sm">
@@ -476,6 +482,10 @@ export default function IncidentDetailPage() {
                       {closeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '🔒 Close Incident'}
                     </Button>
                   </>
+                ) : (
+                  <div className="flex items-center justify-center p-6 border border-dashed rounded-xl text-muted-foreground text-xs">
+                    Only Incident Managers and System Admins are authorized to close incidents.
+                  </div>
                 )}
               </CardContent>
             </Card>

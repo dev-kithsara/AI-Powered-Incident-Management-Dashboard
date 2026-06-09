@@ -5,12 +5,13 @@ const prisma  = new PrismaClient();
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 const incidentSchema = z.object({
-  title:       z.string().min(5).max(255),
-  description: z.string().min(10),
-  severity:    z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  category:    z.string().optional(),
-  location:    z.string().optional(),
-  department:  z.string().optional()
+  title:          z.string().min(5).max(255),
+  description:    z.string().min(10),
+  severity:       z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  category:       z.string().optional(),
+  location:       z.string().optional(),
+  department:     z.string().optional(),
+  investigatorId: z.number().int().optional().nullable()
 });
 
 const actionSchema = z.object({
@@ -163,11 +164,19 @@ exports.listLessonsLearned = async (req, res, next) => {
 // ── Create ─────────────────────────────────────────────────────────────────
 exports.create = async (req, res, next) => {
   try {
-    const data     = incidentSchema.parse(req.body);
+    const { investigatorId, ...incidentData } = incidentSchema.parse(req.body);
     const incident = await prisma.incident.create({
-      data: { ...data, reportedBy: req.user.id, status: 'OPEN' },
+      data: { ...incidentData, reportedBy: req.user.id, status: 'OPEN' },
       include: { reporter: { select: { id: true, name: true } } }
     });
+    if (investigatorId) {
+      await prisma.incidentInvestigation.create({
+        data: {
+          incidentId: incident.id,
+          investigatedBy: investigatorId
+        }
+      });
+    }
     // Kick off AI embedding immediately (fire-and-forget)
     notifyAI(incident.id);
     res.status(201).json({ data: incident });

@@ -45,7 +45,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label, adminOnly }) => {
-            if (adminOnly && user?.role === 'staff') return null
+            if (adminOnly && user?.role !== 'admin') return null
+            if (to === '/incidents/new' && user?.role !== 'admin' && user?.role !== 'incident_manager') return null
             return (
               <NavLink
                 key={to}

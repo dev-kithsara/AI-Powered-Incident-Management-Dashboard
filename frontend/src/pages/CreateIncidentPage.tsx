@@ -1,8 +1,8 @@
 import { useState, FormEvent, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Loader2, Brain, AlertCircle, BookOpen, Sparkles, HelpCircle } from 'lucide-react'
-import { incidentsApi, aiApi } from '@/lib/api'
+import { incidentsApi, aiApi, usersApi } from '@/lib/api'
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
 import { Label }    from '@/components/ui/label'
@@ -26,8 +26,15 @@ export default function CreateIncidentPage() {
   const [category,    setCategory]    = useState('')
   const [department,  setDepartment]  = useState('')
   const [location,    setLocation]    = useState('')
+  const [investigatorId, setInvestigatorId] = useState('')
   const [riskPreview, setRiskPreview] = useState<RiskPrediction | null>(null)
   const [riskLoading, setRiskLoading] = useState(false)
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users'],
+    queryFn:  () => usersApi.list(),
+  })
+  const investigators = (usersData?.data.data ?? []).filter((u: any) => u.role === 'investigator' && u.isActive)
 
   const [recommendations, setRecommendations] = useState<any[]>([])
   const [recLoading, setRecLoading] = useState(false)
@@ -55,7 +62,15 @@ export default function CreateIncidentPage() {
   }, [title, description, category, department])
 
   const createMut = useMutation({
-    mutationFn: () => incidentsApi.create({ title, description, severity: severity as Severity, category, department, location }),
+    mutationFn: () => incidentsApi.create({
+      title,
+      description,
+      severity: severity as Severity,
+      category,
+      department,
+      location,
+      investigatorId: investigatorId && investigatorId !== 'none' ? parseInt(investigatorId) : null
+    }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
@@ -193,6 +208,23 @@ export default function CreateIncidentPage() {
                     onChange={e => setLocation(e.target.value)}
                     placeholder="e.g. Server Room B, Floor 3"
                   />
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label>Assign Investigator</Label>
+                  <Select value={investigatorId} onValueChange={setInvestigatorId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select investigator (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Investigator (Unassigned)</SelectItem>
+                      {investigators.map(u => (
+                        <SelectItem key={u.id} value={String(u.id)}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>

@@ -1,16 +1,18 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import {
   TrendingUp, AlertTriangle, Building2, Tag,
   Loader2, Flame, ShieldAlert, Activity, Zap,
-  ChevronRight, BarChart3, Search,
+  ChevronRight, BarChart3, Search, Award, FileText,
+  BookOpen,
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
   RadialBarChart, RadialBar,
 } from 'recharts'
-import { aiApi } from '@/lib/api'
+import { aiApi, incidentsApi } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import type { RiskAnalysis, AtRiskIncident } from '@/types'
 
@@ -147,6 +149,22 @@ export default function PredictiveRiskPage() {
     }),
     onSuccess: (res) => setPredResult(res.data as any),
   })
+
+  const [selectedCell, setSelectedCell] = useState<{
+    department: string
+    controlType: string
+    averageRating: number
+    totalControls: number
+    incidents: any[]
+  } | null>(null)
+
+  const { data: heatmapRaw, isLoading: isHeatmapLoading } = useQuery({
+    queryKey: ['control-effectiveness'],
+    queryFn: () => incidentsApi.getControlEffectiveness(),
+    staleTime: 60_000,
+  })
+
+  const heatmapData = heatmapRaw?.data?.data ?? []
 
   // Format monthly trend for recharts
   const trendData = useMemo(() => {
@@ -380,6 +398,158 @@ export default function PredictiveRiskPage() {
           </CardContent>
         </Card>
 
+        {/* Control Effectiveness Heatmap */}
+        <Card className="relative overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpen className="h-4 w-4 text-primary" /> Control Effectiveness Heatmap
+            </CardTitle>
+            <CardDescription>Average review rating per Department vs Control Type (1-5, higher = stronger)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isHeatmapLoading ? (
+              <div className="h-48 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : heatmapData.length === 0 ? (
+              <div className="h-48 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No control data available</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border/30 text-[10px] text-muted-foreground uppercase tracking-wider">
+                      <th className="py-2 px-1">Department</th>
+                      <th className="py-2 px-1 text-center">Preventive</th>
+                      <th className="py-2 px-1 text-center">Detective</th>
+                      <th className="py-2 px-1 text-center">Corrective</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['IT', 'HR', 'Finance', 'Operations', 'Facilities', 'Security'].map(dept => (
+                      <tr key={dept} className="border-b border-border/10 hover:bg-accent/10 transition-colors">
+                        <td className="py-2 px-1 font-semibold text-foreground">{dept}</td>
+                        {['Preventive', 'Detective', 'Corrective'].map(type => {
+                          const cell = heatmapData.find((d: any) => d.department === dept && d.controlType === type)
+                          const avg = cell?.averageRating ?? 0
+                          const total = cell?.totalControls ?? 0
+
+                          let colorClasses = "bg-muted/5 text-muted-foreground/30 border-border/10"
+                          let label = "—"
+                          if (total > 0) {
+                            label = avg > 0 ? avg.toFixed(1) : "Unrated"
+                            if (avg === 0) {
+                              colorClasses = "bg-muted/10 text-muted-foreground/60 border-border/15 cursor-pointer hover:bg-muted/20"
+                            } else if (avg <= 2.5) {
+                              colorClasses = "bg-red-500/15 text-red-400 border-red-500/20 font-bold hover:bg-red-500/25 cursor-pointer"
+                            } else if (avg <= 3.7) {
+                              colorClasses = "bg-yellow-500/10 text-yellow-400 border-yellow-500/15 font-bold hover:bg-yellow-500/20 cursor-pointer"
+                            } else {
+                              colorClasses = "bg-emerald-500/15 text-emerald-400 border-emerald-500/20 font-bold hover:bg-emerald-500/25 cursor-pointer"
+                            }
+                          }
+
+                          return (
+                            <td key={type} className="py-1 px-1">
+                              <div
+                                onClick={() => total > 0 && setSelectedCell({
+                                  department: dept,
+                                  controlType: type,
+                                  averageRating: avg,
+                                  totalControls: total,
+                                  incidents: cell?.incidents ?? []
+                                })}
+                                className={`flex flex-col items-center justify-center rounded border p-1 text-center transition-all ${colorClasses}`}
+                                style={{ minHeight: '42px' }}
+                              >
+                                <span className="text-xs font-bold leading-none">{label}</span>
+                                <span className="text-[8px] opacity-75 mt-0.5 leading-none">{total} Ctrl{total !== 1 ? 's' : ''}</span>
+                              </div>
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Drill-down detail card for selected Heatmap cell ─────────── */}
+      {selectedCell && (
+        <Card className="bg-card/40 border-primary/20 backdrop-blur-md animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-lg pointer-events-none" />
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold text-foreground">
+                Control Details: {selectedCell.department} Department · {selectedCell.controlType} Controls
+              </CardTitle>
+              <CardDescription>
+                Avg Effectiveness: <span className="font-bold text-foreground">{selectedCell.averageRating > 0 ? `${selectedCell.averageRating}/5` : 'Unrated'}</span> ({selectedCell.totalControls} registered controls)
+              </CardDescription>
+            </div>
+            <button
+              onClick={() => setSelectedCell(null)}
+              className="text-xs text-muted-foreground hover:text-foreground border border-border/50 rounded px-2 py-0.5"
+            >
+              Clear selection
+            </button>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Vulnerability Rating Card */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-center ${
+                selectedCell.averageRating === 0 ? 'bg-muted/5 border-border/30 text-muted-foreground' :
+                selectedCell.averageRating <= 2.5 ? 'bg-red-500/5 border-red-500/20 text-red-300' :
+                selectedCell.averageRating <= 3.7 ? 'bg-yellow-500/5 border-yellow-500/20 text-yellow-300' :
+                'bg-emerald-500/5 border-emerald-500/20 text-emerald-300'
+              }`}>
+                <div className="flex items-center gap-2 mb-2 font-semibold">
+                  <Award className="h-4.5 w-4.5" />
+                  <span className="text-xs uppercase tracking-wider">Effectiveness Diagnosis</span>
+                </div>
+                <p className="text-xs leading-relaxed">
+                  {selectedCell.averageRating === 0 ? 'These controls have not yet been evaluated during incident reviews.' :
+                   selectedCell.averageRating <= 2.5 ? '⚠️ Critical Vulnerability detected. The average review rating is low, suggesting controls are failing or bypassed. Immediate remediation of preventive measures is required.' :
+                   selectedCell.averageRating <= 3.7 ? 'Moderate effectiveness. The controls offer partial protection but have gaps. Review implementation checklists for improvement.' :
+                   '✅ Excellent control strength. Average rating is high, meaning controls successfully mitigate risks and prevent recurrence in this department.'
+                  }
+                </p>
+              </div>
+
+              {/* Incidents List */}
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" /> Related Incidents
+                </p>
+                <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                  {selectedCell.incidents.map((inc: any) => (
+                    <Link key={inc.id} to={`/incidents/${inc.id}`} className="block">
+                      <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/40 border border-transparent hover:border-border/30 transition-all cursor-pointer">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-foreground truncate">{inc.title}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] font-mono text-muted-foreground">#{inc.id}</span>
+                            <span className="text-[9px] text-muted-foreground">Rating: {inc.rating}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Row: Category Breakdown + Top At-Risk Incidents ─────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Breakdown */}
         <Card>
           <CardHeader>
@@ -413,10 +583,6 @@ export default function PredictiveRiskPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* ── Row: Top At-Risk Incidents + Live Predictor ───────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Top At-Risk Open Incidents */}
         <Card>
@@ -434,7 +600,7 @@ export default function PredictiveRiskPage() {
               </div>
             ) : (
               data.top_at_risk.map((inc: AtRiskIncident, i) => (
-                <a key={inc.id} href={`/incidents/${inc.id}`} className="block">
+                <Link key={inc.id} to={`/incidents/${inc.id}`} className="block">
                   <div className="group flex items-start gap-3 p-2.5 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer">
                     {/* Rank */}
                     <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-border text-[10px] font-bold text-muted-foreground">
@@ -458,13 +624,15 @@ export default function PredictiveRiskPage() {
                       <ChevronRight className="h-3 w-3 text-muted-foreground/40 mt-0.5 group-hover:text-muted-foreground transition-colors" />
                     </div>
                   </div>
-                </a>
+                </Link>
               ))
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* ── Live Risk Predictor Sandbox ──────────────────────────────── */}
+      {/* ── Row: Live Predictor Sandbox (Full Width) ─────────────────────────── */}
+      <div className="grid grid-cols-1 gap-6">
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
           <CardHeader>

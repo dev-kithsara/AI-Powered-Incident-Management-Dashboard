@@ -44,8 +44,8 @@ export default function ProfilePage() {
     pwMut.mutate()
   }
 
-  const badgeColor = roleClass(user?.role ?? 'staff')
-  const badgeLabel = roleLabel(user?.role ?? 'staff')
+  const badgeColor = roleClass(user?.role ?? 'investigator')
+  const badgeLabel = roleLabel(user?.role ?? 'investigator')
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

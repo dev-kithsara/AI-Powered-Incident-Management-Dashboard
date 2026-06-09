@@ -68,11 +68,13 @@ export default function IncidentsPage() {
           <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
             <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
-          <Button asChild size="sm" className="gap-1.5">
-            <Link to="/incidents/new">
-              <Plus className="h-3.5 w-3.5" /> New Incident
-            </Link>
-          </Button>
+          {user?.role !== 'risk_analyst' && (
+            <Button asChild size="sm" className="gap-1.5">
+              <Link to="/incidents/new">
+                <Plus className="h-3.5 w-3.5" /> New Incident
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -136,9 +138,11 @@ export default function IncidentsPage() {
             <div className="flex flex-col items-center py-20 gap-3 text-center">
               <AlertTriangle className="h-10 w-10 text-muted-foreground/40" />
               <p className="text-muted-foreground text-sm">No incidents found</p>
-              <Button asChild size="sm">
-                <Link to="/incidents/new">Create your first incident</Link>
-              </Button>
+              {user?.role !== 'risk_analyst' && (
+                <Button asChild size="sm">
+                  <Link to="/incidents/new">Create your first incident</Link>
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">

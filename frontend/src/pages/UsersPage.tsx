@@ -20,8 +20,6 @@ export const ROLES: { value: UserRole; label: string }[] = [
   { value: 'incident_manager', label: 'Incident Manager' },
   { value: 'investigator',     label: 'Investigator'     },
   { value: 'risk_analyst',     label: 'Risk Analyst'     },
-  { value: 'safety_officer',   label: 'Safety Officer'   },
-  { value: 'staff',            label: 'Staff'            },
 ]
 
 // ── Role appearance map ─────────────────────────────────────────────────────
@@ -33,13 +31,11 @@ const ROLE_META: Record<
   incident_manager: { label: 'Incident Manager', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', Icon: Shield        },
   investigator:     { label: 'Investigator',     color: 'text-violet-400 bg-violet-500/10 border-violet-500/30', Icon: Microscope    },
   risk_analyst:     { label: 'Risk Analyst',     color: 'text-cyan-400   bg-cyan-500/10   border-cyan-500/30',   Icon: BarChart2     },
-  safety_officer:   { label: 'Safety Officer',   color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', Icon: HardHat   },
-  staff:            { label: 'Staff',            color: 'text-blue-400   bg-blue-500/10   border-blue-500/30',   Icon: UserCheck     },
 }
 
 /** Compact role badge displayed in the table trigger */
 function RoleBadge({ role }: { role: string }) {
-  const meta = ROLE_META[role as UserRole] ?? ROLE_META.staff
+  const meta = ROLE_META[role as UserRole] ?? ROLE_META.investigator
   const { Icon, label, color } = meta
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${color}`}>
@@ -55,7 +51,7 @@ export default function UsersPage() {
   const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [role,     setRole]     = useState<UserRole>('staff')
+  const [role,     setRole]     = useState<UserRole>('investigator')
   const [search,   setSearch]   = useState('')
 
   const { data, isLoading } = useQuery({
@@ -75,7 +71,7 @@ export default function UsersPage() {
     onSuccess:  () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       toast({ title: 'User created', variant: 'success' })
-      setShowForm(false); setName(''); setEmail(''); setPassword(''); setRole('staff')
+      setShowForm(false); setName(''); setEmail(''); setPassword(''); setRole('investigator')
     },
     onError: (e: any) => toast({ title: e.response?.data?.error ?? 'Failed', variant: 'destructive' }),
   })
@@ -209,7 +205,7 @@ export default function UsersPage() {
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {users.map(u => {
-                    const currentMeta = ROLE_META[u.role as UserRole] ?? ROLE_META.staff
+                    const currentMeta = ROLE_META[u.role as UserRole] ?? ROLE_META.investigator
                     return (
                       <tr key={u.id} className="hover:bg-accent/30 transition-colors group">
                         {/* User avatar + name */}
