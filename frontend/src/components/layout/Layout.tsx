@@ -47,6 +47,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {navItems.map(({ to, icon: Icon, label, adminOnly }) => {
             if (adminOnly && user?.role !== 'admin') return null
             if (to === '/incidents/new' && user?.role !== 'admin' && user?.role !== 'incident_manager') return null
+<<<<<<< HEAD
+=======
+            if (to === '/ai-dashboard' && user?.role !== 'admin' && user?.role !== 'risk_analyst') return null
+            if (to === '/predictive-risk' && user?.role === 'investigator') return null
+>>>>>>> 8219077 (ci: add GitHub Actions workflow for frontend, backend, and AI service)
             return (
               <NavLink
                 key={to}

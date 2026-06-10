@@ -24,6 +24,16 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return user?.role === 'admin' ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
+const NonInvestigatorRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(s => s.user)
+  return user?.role !== 'investigator' ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
+const AdminOrAnalystRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(s => s.user)
+  return (user?.role === 'admin' || user?.role === 'risk_analyst') ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
 export default function App() {
   const token = useAuthStore(s => s.token)
 
@@ -66,7 +76,29 @@ export default function App() {
 
         <Route path="/ai-dashboard" element={
           <ProtectedRoute>
-            <Layout><AIDashboardPage /></Layout>
+            <AdminOrAnalystRoute>
+              <Layout><AIDashboardPage /></Layout>
+            </AdminOrAnalystRoute>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/predictive-risk" element={
+          <ProtectedRoute>
+            <NonInvestigatorRoute>
+              <Layout><PredictiveRiskPage /></Layout>
+            </NonInvestigatorRoute>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/lessons-learned" element={
+          <ProtectedRoute>
+            <Layout><LessonsLibraryPage /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/root-causes" element={
+          <ProtectedRoute>
+            <Layout><RootCausePage /></Layout>
           </ProtectedRoute>
         } />
 

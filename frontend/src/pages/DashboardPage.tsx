@@ -86,6 +86,171 @@ export default function DashboardPage() {
     )
   }
 
+  if (user?.role === 'investigator') {
+    return (
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Welcome back,{' '}
+              <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Here's your caseload overview and pending action items.
+            </p>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="Assigned Incidents" value={stats?.total       ?? 0} icon={Activity}      color="text-blue-400"   sub="Total caseload" />
+          <KpiCard title="Open"               value={stats?.open        ?? 0} icon={AlertTriangle}  color="text-red-400"    sub="Needs investigation" />
+          <KpiCard title="In Progress"        value={stats?.inProgress  ?? 0} icon={Clock}         color="text-purple-400" sub="Under investigation" />
+          <KpiCard title="Resolved (Solved)"   value={stats?.closed      ?? 0} icon={CheckCircle}   color="text-green-400"  sub="Incidents solved" />
+        </div>
+
+        {/* Custom Investigator Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Action Trackers */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Overdue Actions Tracker */}
+            <Card className="border-red-500/20 bg-red-500/5">
+              <CardHeader>
+                <CardTitle className="text-red-400 flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-5 w-5 text-red-500 animate-pulse" /> Overdue Actions Tracker
+                </CardTitle>
+                <p className="text-xs text-red-300/70">Actions assigned to you that have passed their deadline</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {stats?.overdueActions && stats.overdueActions.length > 0 ? (
+                  stats.overdueActions.map(act => (
+                    <div key={act.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-3 rounded-lg border border-red-500/20 bg-background/50 hover:bg-background/80 transition-colors gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground">{act.actionTaken}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Incident: <Link to={`/incidents/${act.incidentId}`} className="text-primary hover:underline font-medium">#{act.incidentId} - {act.incident?.title}</Link>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="text-[10px] tracking-wide font-bold uppercase">{act.priority}</Badge>
+                        <span className="text-xs text-red-400 font-medium whitespace-nowrap bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                          Due: {new Date(act.dueDate!).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-green-400 text-center py-6">All clear! No overdue actions.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Upcoming Tasks */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" /> Upcoming Tasks
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Action items scheduled for you</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {stats?.upcomingActions && stats.upcomingActions.length > 0 ? (
+                  stats.upcomingActions.map(act => (
+                    <div key={act.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-3 rounded-lg border border-border bg-card hover:bg-accent/30 transition-colors gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">{act.actionTaken}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Incident: <Link to={`/incidents/${act.incidentId}`} className="text-primary hover:underline">#{act.incidentId} - {act.incident?.title}</Link>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-[10px] font-semibold">{act.priority}</Badge>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap bg-muted px-2 py-0.5 rounded">
+                          Due: {new Date(act.dueDate!).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-6">No upcoming actions scheduled.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side caseload Info */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Severity breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Severity Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={sevChartData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
+                      {sevChartData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {sevChartData.map(s => (
+                    <div key={s.name} className="flex items-center gap-2 text-xs">
+                      <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                      <span className="text-muted-foreground">{s.name}</span>
+                      <span className="ml-auto font-semibold text-foreground">{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent incidents (assigned caseload) */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-base">Assigned Caseload</CardTitle>
+                <Link to="/incidents" className="text-xs text-primary hover:underline flex items-center gap-1">
+                  View all <ArrowRight className="h-3 w-3" />
+                </Link>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                {stats?.recentIncidents.map(inc => (
+                  <Link
+                    key={inc.id}
+                    to={`/incidents/${inc.id}`}
+                    className="flex items-center gap-3 rounded-lg p-3 hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                      inc.severity === 'CRITICAL' ? 'bg-red-400' :
+                      inc.severity === 'HIGH'     ? 'bg-orange-400' :
+                      inc.severity === 'MEDIUM'   ? 'bg-yellow-400' : 'bg-green-400'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                        {inc.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{formatDate(inc.createdAt)}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 font-medium ${statusClass(inc.status)}`}>
+                      {inc.status.replace('_', ' ')}
+                    </span>
+                  </Link>
+                ))}
+                {!stats?.recentIncidents.length && (
+                  <p className="text-sm text-muted-foreground text-center py-6">No incidents assigned to you</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
