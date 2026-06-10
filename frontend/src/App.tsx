@@ -6,9 +6,13 @@ import DashboardPage      from '@/pages/DashboardPage'
 import IncidentsPage      from '@/pages/IncidentsPage'
 import CreateIncidentPage from '@/pages/CreateIncidentPage'
 import IncidentDetailPage from '@/pages/IncidentDetailPage'
-import AIDashboardPage    from '@/pages/AIDashboardPage'
-import UsersPage          from '@/pages/UsersPage'
-import ProfilePage        from '@/pages/ProfilePage'
+import AIDashboardPage      from '@/pages/AIDashboardPage'
+import PredictiveRiskPage   from '@/pages/PredictiveRiskPage'
+import UsersPage            from '@/pages/UsersPage'
+import ProfilePage          from '@/pages/ProfilePage'
+import LessonsLibraryPage  from '@/pages/LessonsLibraryPage'
+import RootCausePage        from '@/pages/RootCausePage'
+
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore(s => s.token)
@@ -18,6 +22,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useAuthStore(s => s.user)
   return user?.role === 'admin' ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
+const NonInvestigatorRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(s => s.user)
+  return user?.role !== 'investigator' ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
+const AdminOrAnalystRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(s => s.user)
+  return (user?.role === 'admin' || user?.role === 'risk_analyst') ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
 export default function App() {
@@ -62,7 +76,29 @@ export default function App() {
 
         <Route path="/ai-dashboard" element={
           <ProtectedRoute>
-            <Layout><AIDashboardPage /></Layout>
+            <AdminOrAnalystRoute>
+              <Layout><AIDashboardPage /></Layout>
+            </AdminOrAnalystRoute>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/predictive-risk" element={
+          <ProtectedRoute>
+            <NonInvestigatorRoute>
+              <Layout><PredictiveRiskPage /></Layout>
+            </NonInvestigatorRoute>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/lessons-learned" element={
+          <ProtectedRoute>
+            <Layout><LessonsLibraryPage /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/root-causes" element={
+          <ProtectedRoute>
+            <Layout><RootCausePage /></Layout>
           </ProtectedRoute>
         } />
 

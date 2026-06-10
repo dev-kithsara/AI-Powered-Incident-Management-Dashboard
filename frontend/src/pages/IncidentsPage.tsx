@@ -3,18 +3,71 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   Search, Plus, Filter, Download, Trash2,
-  Eye, AlertTriangle, ChevronLeft, ChevronRight,
+  Eye, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Zap,
 } from 'lucide-react'
-import { incidentsApi } from '@/lib/api'
+import { PieChart, Pie, Cell } from 'recharts'
+import { incidentsApi, aiApi } from '@/lib/api'
 import { Button }  from '@/components/ui/button'
 import { Input }   from '@/components/ui/input'
 import { Badge }   from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast }   from '@/components/ui/toaster'
 import { severityClass, statusClass, formatDate, downloadBlob } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import type { Incident } from '@/types'
+
+const RISK_TEXT = (score: number) => {
+  if (score >= 80) return 'text-red-400'
+  if (score >= 60) return 'text-orange-400'
+  if (score >= 40) return 'text-yellow-400'
+  return 'text-green-400'
+}
+
+const RiskGauge = ({ score, size = 110 }: { score: number; size?: number }) => {
+  const data = [{ name: 'risk', value: score }, { name: 'rest', value: 100 - score }]
+  const colors = score >= 80 ? ['#ef4444', '#1e1e2e']
+                : score >= 60 ? ['#f97316', '#1e1e2e']
+                : score >= 40 ? ['#eab308', '#1e1e2e']
+                : ['#22c55e', '#1e1e2e']
+  return (
+    <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
+      <PieChart width={size} height={size}>
+        <Pie
+          data={data}
+          cx={size / 2 - 4}
+          cy={size / 2 - 4}
+          innerRadius={size * 0.32}
+          outerRadius={size * 0.46}
+          startAngle={225}
+          endAngle={-45}
+          dataKey="value"
+          strokeWidth={0}
+        >
+          {data.map((_, i) => <Cell key={i} fill={colors[i]} />)}
+        </Pie>
+      </PieChart>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-xl font-black ${RISK_TEXT(score)}`}>{Math.round(score)}</span>
+        <span className="text-[8px] text-muted-foreground uppercase tracking-widest">/100</span>
+      </div>
+    </div>
+  )
+}
+
+const SevBadge = ({ sev }: { sev: string }) => {
+  const col: Record<string, string> = {
+    LOW: 'bg-green-500/15 text-green-400 border-green-500/30',
+    MEDIUM: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+    HIGH: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    CRITICAL: 'bg-red-500/15 text-red-400 border-red-500/30',
+  }
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-wide ${col[sev] ?? col.MEDIUM}`}>
+      {sev}
+    </span>
+  )
+}
 
 const LIMIT = 10
 
@@ -27,6 +80,27 @@ export default function IncidentsPage() {
   const [status,     setStatus]     = useState('')
   const [severity,   setSeverity]   = useState('')
   const [department, setDepartment] = useState('')
+
+  const [predTitle, setPredTitle] = useState('')
+  const [predDesc, setPredDesc] = useState('')
+  const [predCat, setPredCat] = useState('')
+  const [predDept, setPredDept] = useState('')
+  const [predResult, setPredResult] = useState<any>(null)
+
+  const predictMutation = useMutation({
+    mutationFn: () => aiApi.predictRisk({
+      title: predTitle,
+      description: predDesc,
+      category: predCat || undefined,
+      department: predDept || undefined,
+    }),
+    onSuccess: (res) => {
+      setPredResult(res.data as any)
+    },
+    onError: () => {
+      toast({ title: 'Failed to predict risk score', variant: 'destructive' })
+    }
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['incidents', page, search, status, severity, department],
@@ -68,11 +142,13 @@ export default function IncidentsPage() {
           <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
             <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
-          <Button asChild size="sm" className="gap-1.5">
-            <Link to="/incidents/new">
-              <Plus className="h-3.5 w-3.5" /> New Incident
-            </Link>
-          </Button>
+          {user?.role !== 'risk_analyst' && (
+            <Button asChild size="sm" className="gap-1.5">
+              <Link to="/incidents/new">
+                <Plus className="h-3.5 w-3.5" /> New Incident
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -136,9 +212,11 @@ export default function IncidentsPage() {
             <div className="flex flex-col items-center py-20 gap-3 text-center">
               <AlertTriangle className="h-10 w-10 text-muted-foreground/40" />
               <p className="text-muted-foreground text-sm">No incidents found</p>
-              <Button asChild size="sm">
-                <Link to="/incidents/new">Create your first incident</Link>
-              </Button>
+              {user?.role !== 'risk_analyst' && (
+                <Button asChild size="sm">
+                  <Link to="/incidents/new">Create your first incident</Link>
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -183,7 +261,7 @@ export default function IncidentsPage() {
                           <Button variant="ghost" size="icon" asChild className="h-7 w-7">
                             <Link to={`/incidents/${inc.id}`}><Eye className="h-3.5 w-3.5" /></Link>
                           </Button>
-                          {(user?.role === 'admin' || user?.role === 'manager') && (
+                          {(user?.role === 'admin' || user?.role === 'incident_manager') && (
                             <Button
                               variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
                               onClick={() => { if (confirm('Delete this incident?')) deleteMut.mutate(inc.id) }}
@@ -204,7 +282,7 @@ export default function IncidentsPage() {
 
       {/* Pagination */}
       {meta && meta.pages > 1 && (
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-sm mt-4">
           <p className="text-muted-foreground">
             Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, meta.total)} of {meta.total}
           </p>
@@ -220,6 +298,98 @@ export default function IncidentsPage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Live Risk Predictor sandbox (only for Investigators) */}
+      {user?.role === 'investigator' && (
+        <Card className="relative overflow-hidden mt-6">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Search className="h-4 w-4 text-primary" /> Live Risk Predictor
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Describe a hypothetical or newly assigned incident and get an instant AI risk score</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <input
+                id="pred-title"
+                value={predTitle}
+                onChange={e => setPredTitle(e.target.value)}
+                placeholder="Incident title…"
+                className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
+              />
+              <textarea
+                id="pred-desc"
+                value={predDesc}
+                onChange={e => setPredDesc(e.target.value)}
+                placeholder="Describe the incident in detail…"
+                rows={3}
+                className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none transition"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  id="pred-cat"
+                  value={predCat}
+                  onChange={e => setPredCat(e.target.value)}
+                  placeholder="Category (optional)"
+                  className="text-sm bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
+                />
+                <input
+                  id="pred-dept"
+                  value={predDept}
+                  onChange={e => setPredDept(e.target.value)}
+                  placeholder="Department (optional)"
+                  className="text-sm bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
+                />
+              </div>
+            </div>
+
+            <button
+              id="predict-risk-btn"
+              onClick={() => predictMutation.mutate()}
+              disabled={!predTitle.trim() || !predDesc.trim() || predDesc.length < 10 || predictMutation.isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {predictMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Analysing…</>
+              ) : (
+                <><Zap className="h-4 w-4" /> Predict Risk</>
+              )}
+            </button>
+
+            {/* Result */}
+            {predResult && (
+              <div className="mt-2 rounded-xl border border-border bg-background/60 p-4 animate-fade-in">
+                <div className="flex items-center gap-4">
+                  <RiskGauge score={predResult.risk_score} size={110} />
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Predicted Level</p>
+                      <SevBadge sev={predResult.risk_label} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Confidence</p>
+                      <p className="text-sm font-bold text-foreground">{(predResult.confidence * 100).toFixed(1)}%</p>
+                    </div>
+                    {predResult.contributing_factors?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Key Factors</p>
+                        <div className="flex flex-wrap gap-1">
+                          {predResult.contributing_factors.map((f: string) => (
+                            <span key={f} className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
+                              {f.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   )

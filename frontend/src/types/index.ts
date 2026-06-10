@@ -1,7 +1,7 @@
 // ── Core Entities ──────────────────────────────────────────────────────────
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'CLOSED'
-export type UserRole = 'admin' | 'manager' | 'staff'
+export type UserRole = 'admin' | 'incident_manager' | 'investigator' | 'risk_analyst'
 
 export interface User {
   id:        number
@@ -26,6 +26,7 @@ export interface Incident {
   aiProcessed:        boolean
   predictedRiskScore?: number
   clusterId?:         number
+  investigatorId?:    number | null
   deletedAt?:         string
   createdAt:          string
   updatedAt:          string
@@ -56,6 +57,7 @@ export interface Investigation {
   incidentId:        number
   findings?:         string
   evidence?:         string
+  evidenceFiles?:    string[]
   investigatedBy?:   number
   investigator?:     { id: number; name: string }
   investigationDate?: string
@@ -126,6 +128,8 @@ export interface Stats {
   bySeverity:  { LOW: number; MEDIUM: number; HIGH: number; CRITICAL: number }
   topCategories: { category: string; count: number }[]
   recentIncidents: Pick<Incident, 'id' | 'title' | 'severity' | 'status' | 'createdAt'>[]
+  overdueActions?: (IncidentAction & { incident?: { id: number; title: string } })[]
+  upcomingActions?: (IncidentAction & { incident?: { id: number; title: string } })[]
 }
 
 // ── AI ─────────────────────────────────────────────────────────────────────
@@ -179,4 +183,56 @@ export interface TimelineEvent {
   type: string
   date: string
   data: Record<string, unknown>
+}
+
+// ── Predictive Risk Analysis ───────────────────────────────────────────────
+export interface RiskSummary {
+  total_incidents: number
+  avg_risk_score:  number
+  critical_count:  number
+  high_count:      number
+  medium_count:    number
+  low_count:       number
+  open_incidents:  number
+}
+
+export interface MonthlyTrendPoint {
+  month:    string   // "YYYY-MM"
+  LOW:      number
+  MEDIUM:   number
+  HIGH:     number
+  CRITICAL: number
+}
+
+export interface DepartmentRisk {
+  department:      string
+  avg_risk_score:  number
+  total_incidents: number
+  critical_count:  number
+}
+
+export interface CategoryBreakdown {
+  category:        string
+  total:           number
+  high_risk_count: number
+  avg_risk_score:  number
+}
+
+export interface AtRiskIncident {
+  id:          number
+  title:       string
+  severity:    Severity
+  category?:   string
+  department?: string
+  risk_score:  number
+  created_at?: string
+  status:      string
+}
+
+export interface RiskAnalysis {
+  summary:            RiskSummary
+  monthly_trend:      MonthlyTrendPoint[]
+  department_risk:    DepartmentRisk[]
+  category_breakdown: CategoryBreakdown[]
+  top_at_risk:        AtRiskIncident[]
 }

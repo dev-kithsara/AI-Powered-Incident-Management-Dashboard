@@ -55,7 +55,7 @@ async def store_embedding(db, incident_id: int, embedding: np.ndarray,
     vec_str = "[" + ",".join(map(str, embedding.tolist())) + "]"
     await db.execute(text("""
         INSERT INTO ai_embeddings (incident_id, embedding, text_hash, umap_x, umap_y, updated_at)
-        VALUES (:incident_id, :embedding::vector, :text_hash, :umap_x, :umap_y, NOW())
+        VALUES (:incident_id, CAST(:embedding AS vector), :text_hash, :umap_x, :umap_y, NOW())
         ON CONFLICT (incident_id)
         DO UPDATE SET embedding  = EXCLUDED.embedding,
                       text_hash  = EXCLUDED.text_hash,
@@ -110,24 +110,34 @@ async def process_incident(db, incident_id: int) -> bool:
 
 
 async def process_all_unprocessed(db) -> int:
+    """Process each incident in its own isolated session to prevent transaction cascade failures."""
     from sqlalchemy import text
+    from db.database import AsyncSessionLocal
+
+    # Fetch the list of IDs using the passed-in session
     result = await db.execute(text("""
         SELECT id FROM incidents
         WHERE  ai_processed = FALSE
-          AND  status       = 'CLOSED'
           AND  deleted_at   IS NULL
         LIMIT 50
     """))
     ids = [row[0] for row in result.fetchall()]
     if not ids:
         return 0
+
     count = 0
     for incident_id in ids:
-        try:
-            if await process_incident(db, incident_id):
-                count += 1
-        except Exception as e:
-            logger.error(f"Error processing incident {incident_id}: {e}")
+        # Each incident gets its own fresh session — one failure won't abort others
+        async with AsyncSessionLocal() as fresh_db:
+            try:
+                if await process_incident(fresh_db, incident_id):
+                    count += 1
+            except Exception as e:
+                logger.error(f"Error processing incident {incident_id}: {e}")
+                try:
+                    await fresh_db.rollback()
+                except Exception:
+                    pass
     return count
 
 

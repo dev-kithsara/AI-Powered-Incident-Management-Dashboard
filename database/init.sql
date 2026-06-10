@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   name        VARCHAR(100)  NOT NULL,
   email       VARCHAR(150)  UNIQUE NOT NULL,
   password    VARCHAR(255)  NOT NULL,
-  role        VARCHAR(20)   NOT NULL DEFAULT 'staff',
+  role        VARCHAR(20)   NOT NULL DEFAULT 'investigator',
   is_active   BOOLEAN       NOT NULL DEFAULT TRUE,
   created_at  TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ   NOT NULL DEFAULT NOW()
@@ -154,7 +154,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_created        ON audit_logs(created_at DES
 
 -- ── Seed users (password = Admin@123) ─────────────────────────────────────
 INSERT INTO users (name, email, password, role) VALUES
-  ('System Admin', 'admin@ims.com',   '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-  ('Manager One',  'manager@ims.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'manager'),
-  ('Staff Member', 'staff@ims.com',   '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'staff')
+  ('System Admin', 'admin@ims.com',        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
+  ('Manager One',  'manager@ims.com',      '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'incident_manager'),
+  ('David Miller', 'investigator@ims.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'investigator'),
+  ('Emily Davis',  'analyst@ims.com',      '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'risk_analyst')
 ON CONFLICT (email) DO NOTHING;

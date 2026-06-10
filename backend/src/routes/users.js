@@ -7,8 +7,8 @@ const prisma = new PrismaClient();
 
 router.use(authenticate);
 
-// List all users (admin/manager only)
-router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
+// List all users (admin/incident_manager only)
+router.get('/', authorize('admin', 'incident_manager'), async (req, res, next) => {
   try {
     const users = await prisma.user.findMany({
       select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true }
@@ -51,7 +51,7 @@ router.post('/', authorize('admin'), async (req, res, next) => {
       name:     z.string().min(2),
       email:    z.string().email(),
       password: z.string().min(6),
-      role:     z.enum(['admin', 'manager', 'staff'])
+      role:     z.enum(['admin', 'incident_manager', 'investigator', 'risk_analyst'])
     });
     const data   = schema.parse(req.body);
     const hashed = await bcrypt.hash(data.password, 10);
@@ -64,7 +64,7 @@ router.post('/', authorize('admin'), async (req, res, next) => {
 // Update user role (admin only)
 router.put('/:id/role', authorize('admin'), async (req, res, next) => {
   try {
-    const schema = z.object({ role: z.enum(['admin', 'manager', 'staff']) });
+    const schema = z.object({ role: z.enum(['admin', 'incident_manager', 'investigator', 'risk_analyst']) });
     const { role } = schema.parse(req.body);
     const user     = await prisma.user.update({ where: { id: parseInt(req.params.id) }, data: { role } });
     const { password: _, ...safe } = user;

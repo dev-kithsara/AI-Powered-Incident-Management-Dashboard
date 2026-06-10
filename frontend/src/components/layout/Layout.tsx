@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, AlertTriangle, Plus, Brain,
   Users, LogOut, Settings, ChevronRight, Activity,
-  ShieldAlert,
+  ShieldAlert, TrendingUp, BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
@@ -11,11 +11,14 @@ import { Toaster } from '@/components/ui/toaster'
 interface NavItem { to: string; icon: React.ElementType; label: string; adminOnly?: boolean }
 
 const navItems: NavItem[] = [
-  { to: '/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/incidents',      icon: AlertTriangle,   label: 'Incidents' },
-  { to: '/incidents/new',  icon: Plus,            label: 'New Incident' },
-  { to: '/ai-dashboard',   icon: Brain,           label: 'AI Analytics' },
-  { to: '/users',          icon: Users,           label: 'Users', adminOnly: true },
+  { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/incidents',       icon: AlertTriangle,   label: 'Incidents' },
+  { to: '/incidents/new',   icon: Plus,            label: 'New Incident' },
+  { to: '/ai-dashboard',    icon: Brain,           label: 'AI Analytics' },
+  { to: '/predictive-risk', icon: TrendingUp,      label: 'Risk Analysis' },
+  { to: '/lessons-learned', icon: BookOpen,        label: 'Lessons Library' },
+  { to: '/root-causes',      icon: Activity,        label: 'Root Causes' },
+  { to: '/users',           icon: Users,           label: 'Users', adminOnly: true },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -42,7 +45,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label, adminOnly }) => {
-            if (adminOnly && user?.role === 'staff') return null
+            if (adminOnly && user?.role !== 'admin') return null
+            if (to === '/incidents/new' && user?.role !== 'admin' && user?.role !== 'incident_manager') return null
+            if (to === '/ai-dashboard' && user?.role !== 'admin' && user?.role !== 'risk_analyst') return null
+            if (to === '/predictive-risk' && user?.role === 'investigator') return null
             return (
               <NavLink
                 key={to}

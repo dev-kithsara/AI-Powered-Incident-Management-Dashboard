@@ -1,7 +1,28 @@
+version: '3.9'
+
+# ============================================================
+#  AI-Powered Incident Management Dashboard
+#  Docker Hub Version — kithsilva
+#
+#  SETUP (First Time):
+#    1. Install Docker Desktop: https://docs.docker.com/get-docker/
+#    2. Open terminal in this folder
+#    3. docker-compose -f docker-compose.hub.yml up -d
+#    4. docker-compose -f docker-compose.hub.yml exec backend npx prisma db push --accept-data-loss
+#    5. docker-compose -f docker-compose.hub.yml exec backend node prisma/seed.js
+#    6. Open http://localhost:3000
+#       Login: admin@ims.com / Admin@123
+#
+#  DAILY USE:
+#    Start: docker-compose -f docker-compose.hub.yml up -d
+#    Stop:  docker-compose -f docker-compose.hub.yml down
+# ============================================================
+
 services:
   # ── PostgreSQL 16 with pgvector ──────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: ims_postgres
     environment:
       POSTGRES_DB:       incident_management
       POSTGRES_USER:     ims_user
@@ -16,11 +37,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
 
   # ── Redis ────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
+    container_name: ims_redis
     ports:
       - "6379:6379"
     volumes:
@@ -30,20 +51,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
 
   # ── Node.js Backend ──────────────────────────────────────────────────────
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      network: host
-    env_file: ./backend/.env
+    image: kithsilva/ims-backend:latest
+    container_name: ims_backend
     environment:
-      DATABASE_URL: postgresql://ims_user:ims_password@postgres:5432/incident_management
+      DATABASE_URL:   postgresql://ims_user:ims_password@postgres:5432/incident_management
       AI_SERVICE_URL: http://ai-service:8001
-      REDIS_URL: redis://redis:6379
-      FRONTEND_URL: http://localhost:3000
+      REDIS_URL:      redis://redis:6379
+      FRONTEND_URL:   http://localhost:3000
+      JWT_SECRET:     supersecretjwtkey2024
+      NODE_ENV:       production
     ports:
       - "8000:8000"
     depends_on:
@@ -51,67 +70,37 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     restart: unless-stopped
 
   # ── Python AI Service ────────────────────────────────────────────────────
   ai-service:
-    build:
-      context: ./ai_service
-      dockerfile: Dockerfile
-      network: host
-    env_file: ./ai_service/.env
+    image: kithsilva/ims-ai-service:latest
+    container_name: ims_ai_service
     environment:
       DATABASE_URL: postgresql+asyncpg://ims_user:ims_password@postgres:5432/incident_management
-      AI_API_KEY: internal_ai_key
+      AI_API_KEY:   internal_ai_key
     ports:
       - "8001:8001"
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - ./ai_service:/app
       - ai_models:/app/models
     restart: unless-stopped
 
   # ── React Frontend ───────────────────────────────────────────────────────
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: kithsilva/ims-frontend:latest
+    container_name: ims_frontend
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
     restart: unless-stopped
 
-# ── Named Volumes ────────────────────────────────────────────────────────────
-# Docker Engine manages the host path for each named volume.
-# Data is stored at: /var/lib/docker/volumes/ims_<name>/_data/
-# These volumes survive container stop/restart/rm — only destroyed by:
-#   docker-compose down -v   OR   docker volume rm <name>
 volumes:
   postgres_data:
-    driver: local
-    labels:
-      com.ims.description: "PostgreSQL 16 database files for incident_management"
-      com.ims.backup: "required"
-
   redis_data:
-    driver: local
-    labels:
-      com.ims.description: "Redis cache persistence"
-      com.ims.backup: "optional"
-
   ai_models:
-    driver: local
-    labels:
-      com.ims.description: "AI model cache and K-Means clustering artifacts"
-      com.ims.backup: "optional"

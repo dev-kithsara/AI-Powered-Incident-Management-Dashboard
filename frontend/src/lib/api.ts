@@ -4,7 +4,7 @@ import type {
   Incident, IncidentAction, Investigation, RootCause,
   Control, Review, Closure, User, Stats,
   PaginatedResponse, SimilarIncident, ClusterMap,
-  ModelStatus, RiskPrediction, TimelineEvent,
+  ModelStatus, RiskPrediction, TimelineEvent, RiskAnalysis,
 } from '@/types'
 
 // ── Axios instance ─────────────────────────────────────────────────────────
@@ -58,6 +58,8 @@ export const incidentsApi = {
     api.delete(`/incidents/${id}`),
   export: (params?: IncidentListParams) =>
     api.get('/incidents/export', { params, responseType: 'blob' }),
+  getLessonsLearned: (search?: string) =>
+    api.get<{ data: Incident[] }>('/incidents/lessons-learned', { params: { search } }),
 
   // Object 2: Actions
   addAction:    (id: number, data: Partial<IncidentAction>) =>
@@ -72,6 +74,10 @@ export const incidentsApi = {
     api.post<{ data: Investigation }>(`/incidents/${id}/investigation`, data),
   getInvestigation: (id: number) =>
     api.get<{ data: Investigation | null }>(`/incidents/${id}/investigation`),
+  uploadEvidence:   (id: number, data: FormData) =>
+    api.post<{ data: string[] }>(`/incidents/${id}/upload-evidence`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 
   // Object 4: Root Cause
   addRootCause: (id: number, data: Partial<RootCause>) =>
@@ -100,6 +106,12 @@ export const incidentsApi = {
   // Timeline
   getTimeline: (id: number) =>
     api.get<{ data: TimelineEvent[] }>(`/incidents/${id}/timeline`),
+
+  getRootCauseAnalytics: (params?: { startDate?: string; endDate?: string; department?: string; severity?: string }) =>
+    api.get<{ data: any }>('/incidents/root-cause-analytics', { params }),
+
+  getControlEffectiveness: () =>
+    api.get<{ data: any[] }>('/incidents/control-effectiveness'),
 }
 
 // ── Stats ──────────────────────────────────────────────────────────────────
@@ -132,4 +144,9 @@ export const aiApi = {
   clusterStats: () => api.get('/ai/cluster-stats'),
   modelStatus:  () => api.get<ModelStatus>('/ai/model-status'),
   health:       () => api.get('/ai/health'),
+  riskAnalysis: () => api.get<RiskAnalysis>('/ai/risk-analysis'),
+  runPipeline:  () => api.post('/ai/run-pipeline'),
+  seedBaseline: () => api.post('/ai/seed-baseline'),
+  recommendLessons: (data: { title: string; description: string; category?: string; department?: string }) =>
+    api.post<{ recommendations: any[] }>('/ai/lessons-learned/recommend', data),
 }

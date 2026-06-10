@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -12,7 +13,7 @@ model User {
   name      String   @db.VarChar(100)
   email     String   @unique @db.VarChar(150)
   password  String   @db.VarChar(255)
-  role      String   @default("staff")
+  role      String   @default("investigator")
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -79,6 +80,7 @@ model IncidentInvestigation {
   incidentId        Int       @unique @map("incident_id")
   findings          String?
   evidence          String?
+  evidenceFiles     String[]  @map("evidence_files")
   investigatedBy    Int?      @map("investigated_by")
   investigationDate DateTime? @map("investigation_date") @db.Date
   createdAt         DateTime  @default(now()) @map("created_at")
@@ -155,13 +157,14 @@ model IncidentClosure {
 }
 
 model AiEmbedding {
-  id         Int      @id @default(autoincrement())
-  incidentId Int      @unique @map("incident_id")
-  umapX      Float?   @map("umap_x")
-  umapY      Float?   @map("umap_y")
-  textHash   String?  @map("text_hash") @db.VarChar(64)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id         Int                              @id @default(autoincrement())
+  incidentId Int                              @unique @map("incident_id")
+  embedding  Unsupported("vector(384)")?
+  umapX      Float?                           @map("umap_x")
+  umapY      Float?                           @map("umap_y")
+  textHash   String?                          @map("text_hash") @db.VarChar(64)
+  createdAt  DateTime                         @default(now()) @map("created_at")
+  updatedAt  DateTime                         @updatedAt @map("updated_at")
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
@@ -180,4 +183,19 @@ model AuditLog {
   user User? @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
+}
+
+model ModelMetrics {
+  id              Int      @id @default(autoincrement())
+  modelType       String   @map("model_type") @db.VarChar(50)
+  accuracy        Float?
+  precisionScore  Float?   @map("precision_score")
+  recallScore     Float?   @map("recall_score")
+  f1Score         Float?   @map("f1_score")
+  trainingSamples Int?     @map("training_samples")
+  optimalK        Int?     @map("optimal_k")
+  silhouetteScore Float?   @map("silhouette_score")
+  trainedAt       DateTime @default(now()) @map("trained_at")
+
+  @@map("model_metrics")
 }

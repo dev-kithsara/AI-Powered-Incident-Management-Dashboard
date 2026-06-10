@@ -8,7 +8,7 @@ import logging
 load_dotenv()
 
 from db.database import init_db
-from routers import similar, clustering, risk, health
+from routers import similar, clustering, risk, health, lessons
 from scheduler import setup_scheduler, shutdown_scheduler
 
 logging.basicConfig(
@@ -61,4 +61,6 @@ app.include_router(similar.router,    prefix="/api/ai", tags=["similarity"],
 app.include_router(clustering.router, prefix="/api/ai", tags=["clustering"],
                    dependencies=[Depends(verify_api_key)])
 app.include_router(risk.router,       prefix="/api/ai", tags=["risk"],
+                   dependencies=[Depends(verify_api_key)])
+app.include_router(lessons.router,    prefix="/api/ai", tags=["lessons"],
                    dependencies=[Depends(verify_api_key)])
