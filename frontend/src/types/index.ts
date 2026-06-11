@@ -128,6 +128,8 @@ export interface Stats {
   bySeverity:  { LOW: number; MEDIUM: number; HIGH: number; CRITICAL: number }
   topCategories: { category: string; count: number }[]
   recentIncidents: Pick<Incident, 'id' | 'title' | 'severity' | 'status' | 'createdAt'>[]
+  overdueActions?: (IncidentAction & { incident?: { id: number; title: string } })[]
+  upcomingActions?: (IncidentAction & { incident?: { id: number; title: string } })[]
 }
 
 // ── AI ─────────────────────────────────────────────────────────────────────

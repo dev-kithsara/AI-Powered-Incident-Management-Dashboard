@@ -14,8 +14,7 @@ const navItems: NavItem[] = [
   { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/incidents',       icon: AlertTriangle,   label: 'Incidents' },
   { to: '/incidents/new',   icon: Plus,            label: 'New Incident' },
-  { to: '/ai-dashboard',    icon: Brain,           label: 'AI Analytics' },
-  { to: '/predictive-risk', icon: TrendingUp,      label: 'Risk Analysis' },
+  { to: '/analytics',       icon: Brain,           label: 'Analytics Hub' },
   { to: '/lessons-learned', icon: BookOpen,        label: 'Lessons Library' },
   { to: '/root-causes',      icon: Activity,        label: 'Root Causes' },
   { to: '/users',           icon: Users,           label: 'Users', adminOnly: true },
@@ -47,6 +46,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {navItems.map(({ to, icon: Icon, label, adminOnly }) => {
             if (adminOnly && user?.role !== 'admin') return null
             if (to === '/incidents/new' && user?.role !== 'admin' && user?.role !== 'incident_manager') return null
+            if (to === '/analytics' && user?.role !== 'admin' && user?.role !== 'risk_analyst') return null
             return (
               <NavLink
                 key={to}

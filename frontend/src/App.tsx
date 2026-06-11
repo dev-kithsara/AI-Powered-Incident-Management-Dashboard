@@ -6,8 +6,7 @@ import DashboardPage      from '@/pages/DashboardPage'
 import IncidentsPage      from '@/pages/IncidentsPage'
 import CreateIncidentPage from '@/pages/CreateIncidentPage'
 import IncidentDetailPage from '@/pages/IncidentDetailPage'
-import AIDashboardPage      from '@/pages/AIDashboardPage'
-import PredictiveRiskPage   from '@/pages/PredictiveRiskPage'
+import AnalyticsHubPage   from '@/pages/AnalyticsHubPage'
 import UsersPage            from '@/pages/UsersPage'
 import ProfilePage          from '@/pages/ProfilePage'
 import LessonsLibraryPage  from '@/pages/LessonsLibraryPage'
@@ -22,6 +21,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useAuthStore(s => s.user)
   return user?.role === 'admin' ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
+const AdminOrAnalystRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(s => s.user)
+  return (user?.role === 'admin' || user?.role === 'risk_analyst') ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
 export default function App() {
@@ -64,15 +68,11 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/ai-dashboard" element={
+        <Route path="/analytics" element={
           <ProtectedRoute>
-            <Layout><AIDashboardPage /></Layout>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/predictive-risk" element={
-          <ProtectedRoute>
-            <Layout><PredictiveRiskPage /></Layout>
+            <AdminOrAnalystRoute>
+              <Layout><AnalyticsHubPage /></Layout>
+            </AdminOrAnalystRoute>
           </ProtectedRoute>
         } />
 
@@ -107,3 +107,4 @@ export default function App() {
     </BrowserRouter>
   )
 }
+

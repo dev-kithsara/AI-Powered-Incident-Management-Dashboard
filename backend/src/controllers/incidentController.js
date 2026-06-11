@@ -91,6 +91,10 @@ exports.list = async (req, res, next) => {
     const skip  = (parseInt(page) - 1) * parseInt(limit);
     const where = { deletedAt: null };
 
+    if (req.user.role === 'investigator') {
+      where.investigation = { investigatedBy: req.user.id };
+    }
+
     if (status)     where.status     = status;
     if (severity)   where.severity   = severity;
     if (department) where.department = department;
@@ -233,8 +237,12 @@ exports.softDelete = async (req, res, next) => {
 // ── Export CSV ─────────────────────────────────────────────────────────────
 exports.exportCsv = async (req, res, next) => {
   try {
+    const where = { deletedAt: null };
+    if (req.user.role === 'investigator') {
+      where.investigation = { investigatedBy: req.user.id };
+    }
     const incidents = await prisma.incident.findMany({
-      where: { deletedAt: null },
+      where,
       orderBy: { createdAt: 'desc' },
       include: { reporter: { select: { name: true } } }
     });
