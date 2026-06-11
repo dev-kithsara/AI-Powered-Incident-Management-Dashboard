@@ -6,7 +6,7 @@ router.use(authenticate);
 
 // Core CRUD
 router.get('/',       ctrl.list);
-router.post('/',      authorize('admin', 'incident_manager'), ctrl.create);
+router.post('/',      authorize('admin', 'incident_manager', 'reporter'), ctrl.create);
 router.get('/export', ctrl.exportCsv);
 router.get('/lessons-learned', ctrl.listLessonsLearned);
 router.get('/root-cause-analytics', ctrl.getRootCauseAnalytics);
@@ -16,7 +16,7 @@ router.put('/:id',    authorize('admin', 'incident_manager', 'investigator'), ct
 router.delete('/:id', authorize('admin', 'incident_manager'), ctrl.softDelete);
 
 // Object 2: Actions
-router.post('/:id/actions',     authorize('admin', 'incident_manager', 'investigator'), ctrl.addAction);
+router.post('/:id/actions',     authorize('admin', 'incident_manager', 'investigator', 'reporter'), ctrl.addAction);
 router.get('/:id/actions',      ctrl.getActions);
 router.put('/:id/actions/:aId', authorize('admin', 'incident_manager', 'investigator'), ctrl.updateAction);
 

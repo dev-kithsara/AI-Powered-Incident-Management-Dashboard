@@ -142,7 +142,7 @@ export default function IncidentsPage() {
           <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
             <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
-          {user?.role !== 'risk_analyst' && (
+          {user?.role === 'reporter' && (
             <Button asChild size="sm" className="gap-1.5">
               <Link to="/incidents/new">
                 <Plus className="h-3.5 w-3.5" /> New Incident

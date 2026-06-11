@@ -86,6 +86,143 @@ export default function DashboardPage() {
     )
   }
 
+  if (user?.role === 'reporter') {
+    return (
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Welcome, <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Report incidents and track the progress of your submissions.
+            </p>
+          </div>
+          <Link
+            to="/incidents/new"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground btn-glow hover:bg-primary/90 transition-colors"
+          >
+            <Zap className="h-4 w-4" /> Report New Incident
+          </Link>
+        </div>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="My Reports"    value={stats?.total      ?? 0} icon={Activity}     color="text-blue-400"   sub="Total submitted" />
+          <KpiCard title="Under Review"  value={stats?.open       ?? 0} icon={Eye}          color="text-yellow-400" sub="Awaiting triage" />
+          <KpiCard title="In Progress"   value={stats?.inProgress ?? 0} icon={Clock}        color="text-purple-400" sub="Being handled" />
+          <KpiCard title="Resolved"      value={stats?.closed     ?? 0} icon={CheckCircle}  color="text-green-400"  sub="Incidents closed" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* My submitted reports */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-primary" /> My Submitted Reports
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                {stats?.recentIncidents && stats.recentIncidents.length > 0 ? (
+                  stats.recentIncidents.map(inc => (
+                    <Link
+                      key={inc.id}
+                      to={`/incidents/${inc.id}`}
+                      className="flex items-center gap-3 rounded-lg p-3 hover:bg-accent/50 transition-colors group border border-border/40"
+                    >
+                      <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${
+                        inc.severity === 'CRITICAL' ? 'bg-red-400' :
+                        inc.severity === 'HIGH'     ? 'bg-orange-400' :
+                        inc.severity === 'MEDIUM'   ? 'bg-yellow-400' : 'bg-green-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                          {inc.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatDate(inc.createdAt)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                          inc.severity === 'CRITICAL' ? 'border-red-500/30 bg-red-500/10 text-red-400' :
+                          inc.severity === 'HIGH'     ? 'border-orange-500/30 bg-orange-500/10 text-orange-400' :
+                          inc.severity === 'MEDIUM'   ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400' :
+                                                        'border-green-500/30 bg-green-500/10 text-green-400'
+                        }`}>{inc.severity}</span>
+                        <span className={`text-[10px] px-2 py-0.5 font-medium ${statusClass(inc.status)}`}>
+                          {inc.status.replace(/_/g, ' ')}
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                    <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <AlertTriangle className="h-7 w-7 text-primary/60" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">No incidents reported yet</p>
+                    <p className="text-xs text-muted-foreground max-w-xs">
+                      If you witness or experience an incident, use the button above to report it immediately.
+                    </p>
+                    <Link
+                      to="/incidents/new"
+                      className="mt-2 flex items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 text-primary px-4 py-2 text-sm font-medium hover:bg-primary/20 transition-colors"
+                    >
+                      <Zap className="h-4 w-4" /> Report Your First Incident
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* What happens next guide */}
+          <div className="space-y-4">
+            <Card className="bg-card/40 border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" /> What Happens After You Submit?
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { step: 1, title: 'Notification Sent', desc: 'The Incident Manager is instantly notified of your report.', color: 'bg-blue-500' },
+                  { step: 2, title: 'Triage & Review',   desc: 'Your report is reviewed and an investigator is assigned.', color: 'bg-purple-500' },
+                  { step: 3, title: 'Investigation',     desc: 'The assigned investigator investigates the root cause.', color: 'bg-yellow-500' },
+                  { step: 4, title: 'Resolved & Closed', desc: 'The incident is fixed and marked as resolved.', color: 'bg-green-500' },
+                ].map(({ step, title, desc, color }) => (
+                  <div key={step} className="flex gap-3">
+                    <div className={`h-6 w-6 rounded-full ${color} flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold mt-0.5`}>
+                      {step}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="pt-5">
+                <p className="text-xs font-semibold text-primary mb-1">📌 Tips for a good report</p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li>• Be as specific as possible about what happened</li>
+                  <li>• Include exact location and time if known</li>
+                  <li>• Mention anyone else who witnessed the event</li>
+                  <li>• Note any immediate actions you already took</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (user?.role === 'investigator') {
     return (
       <div className="space-y-8">
@@ -251,6 +388,144 @@ export default function DashboardPage() {
     )
   }
 
+  if (user?.role === 'incident_manager') {
+    return (
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Manager Overview,{' '}
+              <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Triage new reports and oversee incident resolution.
+            </p>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="Total Reported" value={stats?.total       ?? 0} icon={Activity}      color="text-blue-400"   sub="All time" />
+          <KpiCard title="Needs Triage"   value={stats?.open        ?? 0} icon={AlertTriangle}  color="text-red-400"    sub="Unassigned / Open" />
+          <KpiCard title="In Progress"    value={stats?.inProgress  ?? 0} icon={Clock}         color="text-purple-400" sub="Under investigation" />
+          <KpiCard title="Resolved"       value={stats?.closed      ?? 0} icon={CheckCircle}   color="text-green-400"  sub="Incidents closed" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Triage Center (Open Incidents) */}
+          <div className="lg:col-span-2">
+            <Card className="border-red-500/20 bg-red-500/5 h-full">
+              <CardHeader className="pb-3 border-b border-red-500/10">
+                <CardTitle className="text-base flex items-center gap-2 text-red-400">
+                  <AlertTriangle className="h-4 w-4" /> Action Required: Needs Triage
+                </CardTitle>
+                <p className="text-xs text-red-300/70">Incidents awaiting investigator assignment</p>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                {stats?.recentIncidents?.filter(i => i.status === 'OPEN').length ? (
+                  stats.recentIncidents.filter(i => i.status === 'OPEN').slice(0, 5).map(inc => (
+                    <Link
+                      key={inc.id}
+                      to={`/incidents/${inc.id}`}
+                      className="flex items-center gap-3 rounded-lg p-3 hover:bg-background/80 bg-background/50 transition-colors border border-red-500/20 group"
+                    >
+                      <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${
+                        inc.severity === 'CRITICAL' ? 'bg-red-400' :
+                        inc.severity === 'HIGH'     ? 'bg-orange-400' :
+                        inc.severity === 'MEDIUM'   ? 'bg-yellow-400' : 'bg-green-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                          {inc.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Reported: {formatDate(inc.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                          inc.severity === 'CRITICAL' ? 'border-red-500/30 bg-red-500/10 text-red-400' :
+                          inc.severity === 'HIGH'     ? 'border-orange-500/30 bg-orange-500/10 text-orange-400' :
+                          inc.severity === 'MEDIUM'   ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400' :
+                                                        'border-green-500/30 bg-green-500/10 text-green-400'
+                        }`}>{inc.severity}</span>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <CheckCircle className="h-10 w-10 text-green-500/50 mb-3" />
+                    <p className="text-sm font-medium text-green-400">All caught up!</p>
+                    <p className="text-xs text-muted-foreground mt-1">No pending incidents require triage.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar Metrics */}
+          <div className="space-y-6">
+            {/* Severity Breakdown */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Severity Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={sevChartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={2} dataKey="value">
+                      {sevChartData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {sevChartData.map(s => (
+                    <div key={s.name} className="flex items-center gap-1.5 text-[10px]">
+                      <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                      <span className="text-muted-foreground">{s.name}</span>
+                      <span className="ml-auto font-semibold text-foreground">{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Categories */}
+            <Card>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm">Top Categories</CardTitle>
+                <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {stats?.byCategory?.slice(0, 4).map((c: any, i: number) => (
+                  <div key={c.category} className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-foreground font-medium flex items-center gap-1.5">
+                        <span className="text-muted-foreground">{i + 1}</span> {c.category}
+                      </span>
+                      <span className="text-primary font-bold">{c._count.id}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-accent/50 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary/80 rounded-full" 
+                        style={{ width: `${Math.min(100, (c._count.id / Math.max(1, stats.total)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -264,12 +539,14 @@ export default function DashboardPage() {
             Here's what's happening in your incident management system.
           </p>
         </div>
-        <Link
-          to="/incidents/new"
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground btn-glow hover:bg-primary/90 transition-colors"
-        >
-          <Zap className="h-4 w-4" /> New Incident
-        </Link>
+        {user?.role === 'reporter' && (
+          <Link
+            to="/incidents/new"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground btn-glow hover:bg-primary/90 transition-colors"
+          >
+            <Zap className="h-4 w-4" /> New Incident
+          </Link>
+        )}
       </div>
 
       {/* KPI Cards */}

@@ -196,7 +196,11 @@ export default function IncidentDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto pb-1 border-b border-border/50">
-        {TABS.map(({ id: tId, label, icon: Icon }) => (
+        {TABS.filter(({ id: tId }) => {
+          if (user?.role === 'reporter') return tId === 'overview' || tId === 'actions'
+          if (user?.role === 'investigator') return ['overview', 'actions', 'investigation', 'root-cause', 'controls'].includes(tId)
+          return true // admin, risk_analyst, incident_manager see all
+        }).map(({ id: tId, label, icon: Icon }) => (
           <button
             key={tId}
             onClick={() => setTab(tId)}

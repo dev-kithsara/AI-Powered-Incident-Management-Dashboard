@@ -4,13 +4,15 @@ import Layout             from '@/components/layout/Layout'
 import LoginPage          from '@/pages/LoginPage'
 import DashboardPage      from '@/pages/DashboardPage'
 import IncidentsPage      from '@/pages/IncidentsPage'
-import CreateIncidentPage from '@/pages/CreateIncidentPage'
+import CreateIncidentPage           from '@/pages/CreateIncidentPage'
+import ReporterCreateIncidentPage   from '@/pages/ReporterCreateIncidentPage'
 import IncidentDetailPage from '@/pages/IncidentDetailPage'
 import AnalyticsHubPage   from '@/pages/AnalyticsHubPage'
 import UsersPage            from '@/pages/UsersPage'
 import ProfilePage          from '@/pages/ProfilePage'
 import LessonsLibraryPage  from '@/pages/LessonsLibraryPage'
 import RootCausePage        from '@/pages/RootCausePage'
+import SupportPage          from '@/pages/SupportPage'
 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -26,6 +28,11 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminOrAnalystRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useAuthStore(s => s.user)
   return (user?.role === 'admin' || user?.role === 'risk_analyst') ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
+const ReporterOnlyRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(s => s.user)
+  return user?.role === 'reporter' ? <>{children}</> : <Navigate to="/dashboard" replace />
 }
 
 export default function App() {
@@ -58,7 +65,9 @@ export default function App() {
 
         <Route path="/incidents/new" element={
           <ProtectedRoute>
-            <Layout><CreateIncidentPage /></Layout>
+            <ReporterOnlyRoute>
+              <Layout><ReporterCreateIncidentPage /></Layout>
+            </ReporterOnlyRoute>
           </ProtectedRoute>
         } />
 
@@ -99,6 +108,12 @@ export default function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Layout><ProfilePage /></Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/support" element={
+          <ProtectedRoute>
+            <Layout><SupportPage /></Layout>
           </ProtectedRoute>
         } />
 

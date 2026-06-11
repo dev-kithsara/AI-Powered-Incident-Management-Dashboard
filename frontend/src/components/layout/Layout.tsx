@@ -7,8 +7,9 @@ import {
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import { Toaster } from '@/components/ui/toaster'
+import NotificationBar from '@/components/layout/NotificationBar'
 
-interface NavItem { to: string; icon: React.ElementType; label: string; adminOnly?: boolean }
+interface NavItem { to: string; icon: React.ElementType; label: string; adminOnly?: boolean; reporterOnly?: boolean }
 
 const navItems: NavItem[] = [
   { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard' },
@@ -17,6 +18,7 @@ const navItems: NavItem[] = [
   { to: '/analytics',       icon: Brain,           label: 'Analytics Hub' },
   { to: '/lessons-learned', icon: BookOpen,        label: 'Lessons Library' },
   { to: '/root-causes',      icon: Activity,        label: 'Root Causes' },
+  { to: '/support',         icon: ShieldAlert,     label: 'Support', reporterOnly: true },
   { to: '/users',           icon: Users,           label: 'Users', adminOnly: true },
 ]
 
@@ -43,9 +45,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label, adminOnly }) => {
+          {navItems.map(({ to, icon: Icon, label, adminOnly, reporterOnly }) => {
             if (adminOnly && user?.role !== 'admin') return null
-            if (to === '/incidents/new' && user?.role !== 'admin' && user?.role !== 'incident_manager') return null
+            if (reporterOnly && user?.role !== 'reporter') return null
+            if (to === '/incidents/new' && user?.role !== 'reporter') return null
+            if (['/incidents', '/lessons-learned', '/root-causes'].includes(to) && user?.role === 'reporter') return null
             if (to === '/analytics' && user?.role !== 'admin' && user?.role !== 'risk_analyst') return null
             return (
               <NavLink
@@ -110,8 +114,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="min-h-full p-8 animate-fade-in">
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        <NotificationBar />
+        <div className="flex-1 p-8 animate-fade-in">
           {children}
         </div>
       </main>
