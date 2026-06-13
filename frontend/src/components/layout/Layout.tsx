@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import { Toaster } from '@/components/ui/toaster'
 import NotificationBar from '@/components/layout/NotificationBar'
+import ChatWidget from '@/components/chat/ChatWidget'
 
 interface NavItem { to: string; icon: React.ElementType; label: string; adminOnly?: boolean; reporterOnly?: boolean }
 
@@ -121,6 +122,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
+      <ChatWidget />
       <Toaster />
     </div>
   )

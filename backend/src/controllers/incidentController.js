@@ -699,3 +699,59 @@ exports.getControlEffectiveness = async (req, res, next) => {
   }
 };
 
+// ── Submit/Approve/Reject Investigation ──────────────────────────────────────
+exports.submitInvestigation = async (req, res, next) => {
+  try {
+    const inc = await getIncidentOrFail(req.params.id);
+    const inv = await prisma.incidentInvestigation.findUnique({
+      where: { incidentId: inc.id }
+    });
+    if (req.user.role === 'investigator' && inv?.investigatedBy !== req.user.id) {
+      return res.status(403).json({ error: 'You are not assigned to this incident' });
+    }
+
+    const updated = await prisma.incident.update({
+      where: { id: inc.id },
+      data: {
+        status: 'UNDER_REVIEW',
+        isRejected: false,
+        rejectionComment: null
+      }
+    });
+    res.json({ data: updated, message: 'Investigation submitted for review' });
+  } catch (err) { next(err); }
+};
+
+exports.rejectInvestigation = async (req, res, next) => {
+  try {
+    const inc = await getIncidentOrFail(req.params.id);
+    const { comment } = req.body;
+    if (!comment) {
+      return res.status(400).json({ error: 'Rejection comment is required' });
+    }
+    const updated = await prisma.incident.update({
+      where: { id: inc.id },
+      data: {
+        status: 'IN_PROGRESS',
+        isRejected: true,
+        rejectionComment: comment
+      }
+    });
+    res.json({ data: updated, message: 'Investigation rejected successfully' });
+  } catch (err) { next(err); }
+};
+
+exports.approveInvestigation = async (req, res, next) => {
+  try {
+    const inc = await getIncidentOrFail(req.params.id);
+    const updated = await prisma.incident.update({
+      where: { id: inc.id },
+      data: {
+        isRejected: false,
+        rejectionComment: null
+      }
+    });
+    res.json({ data: updated, message: 'Investigation approved' });
+  } catch (err) { next(err); }
+};
+

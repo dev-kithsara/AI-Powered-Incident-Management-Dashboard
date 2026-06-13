@@ -45,6 +45,11 @@ router.get('/:id/controls',  ctrl.getControls);
 router.post('/:id/review', authorize('admin', 'incident_manager'), ctrl.addReview);
 router.get('/:id/review',  ctrl.getReview);
 
+// Investigation workflow routes
+router.post('/:id/submit-investigation', authorize('admin', 'incident_manager', 'investigator'), ctrl.submitInvestigation);
+router.post('/:id/reject-investigation', authorize('admin', 'incident_manager'), ctrl.rejectInvestigation);
+router.post('/:id/approve-investigation', authorize('admin', 'incident_manager'), ctrl.approveInvestigation);
+
 // Object 7: Close
 router.post('/:id/close', authorize('admin', 'incident_manager'), ctrl.closeIncident);
 router.get('/:id/close',  ctrl.getClosure);

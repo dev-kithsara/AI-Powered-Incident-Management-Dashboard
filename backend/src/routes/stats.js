@@ -34,7 +34,7 @@ router.get('/', async (req, res, next) => {
         where:   baseWhere,
         orderBy: { createdAt: 'desc' },
         take:    5,
-        select:  { id: true, title: true, severity: true, status: true, createdAt: true }
+        select:  { id: true, title: true, severity: true, status: true, createdAt: true, isRejected: true, rejectionComment: true }
       })
     ];
 

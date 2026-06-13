@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   Search, Plus, Filter, Download, Trash2,
-  Eye, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Zap,
+  Eye, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Zap, Sparkles,
 } from 'lucide-react'
 import { PieChart, Pie, Cell } from 'recharts'
 import { incidentsApi, aiApi } from '@/lib/api'
@@ -133,7 +133,7 @@ export default function IncidentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Incidents</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Incidents</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {meta?.total ?? 0} total incidents
           </p>
@@ -239,7 +239,7 @@ export default function IncidentsPage() {
                           {inc.title}
                         </p>
                         {inc.aiProcessed && (
-                          <span className="text-[10px] text-cyan-400">✦ AI processed</span>
+                          <span className="text-[10px] text-cyan-400 flex items-center gap-1"><Sparkles className="h-3 w-3" /> AI processed</span>
                         )}
                       </td>
                       <td className="px-4 py-3">

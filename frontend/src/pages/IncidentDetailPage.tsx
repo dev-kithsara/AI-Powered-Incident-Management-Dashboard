@@ -5,6 +5,7 @@ import {
   ArrowLeft, CheckCircle, Clock, FileText, Shield,
   Search, ClipboardCheck, XCircle, Brain, Loader2,
   Plus, ChevronRight, UploadCloud, Paperclip, X,
+  Lock, Sparkles, RefreshCw,
 } from 'lucide-react'
 import { incidentsApi, aiApi } from '@/lib/api'
 import { Button }   from '@/components/ui/button'
@@ -131,9 +132,45 @@ export default function IncidentDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incident', incId] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
-      toast({ title: '✅ Incident closed successfully', variant: 'success' })
+      toast({ title: 'Incident closed successfully', variant: 'success' })
     },
     onError: (e: any) => toast({ title: e.response?.data?.error ?? 'Failed to close', variant: 'destructive' }),
+  })
+
+  // ── Investigation submit/approve/reject mutations ─────────────────────────
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [showRejectionForm, setShowRejectionForm] = useState(false)
+
+  const submitInvWorkflowMut = useMutation({
+    mutationFn: () => incidentsApi.submitInvestigation(incId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', incId] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      toast({ title: 'Investigation submitted for review', variant: 'success' })
+    },
+    onError: (e: any) => toast({ title: e.response?.data?.error ?? 'Failed to submit', variant: 'destructive' })
+  })
+
+  const rejectInvWorkflowMut = useMutation({
+    mutationFn: () => incidentsApi.rejectInvestigation(incId, rejectionReason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', incId] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      setShowRejectionForm(false)
+      setRejectionReason('')
+      toast({ title: 'Investigation rejected', variant: 'success' })
+    },
+    onError: (e: any) => toast({ title: e.response?.data?.error ?? 'Failed to reject', variant: 'destructive' })
+  })
+
+  const approveInvWorkflowMut = useMutation({
+    mutationFn: () => incidentsApi.approveInvestigation(incId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incident', incId] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      toast({ title: 'Investigation approved', variant: 'success' })
+    },
+    onError: (e: any) => toast({ title: e.response?.data?.error ?? 'Failed to approve', variant: 'destructive' })
   })
 
   // ── Similar incidents ────────────────────────────────────────────────────
@@ -177,10 +214,10 @@ export default function IncidentDetailPage() {
         </Button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-foreground truncate">{inc.title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">{inc.title}</h1>
             <span className={`text-xs px-2 py-0.5 font-medium ${severityClass(inc.severity)}`}>{inc.severity}</span>
             <span className={`text-xs px-2 py-0.5 font-medium ${statusClass(inc.status)}`}>{inc.status.replace('_', ' ')}</span>
-            {inc.aiProcessed && <span className="text-xs text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 rounded-full px-2 py-0.5">✦ AI Processed</span>}
+            {inc.aiProcessed && <span className="text-xs text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 rounded-full px-2 py-0.5 flex items-center gap-1"><Sparkles className="h-3 w-3" /> AI Processed</span>}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             #{inc.id} · Reported by {inc.reporter?.name ?? 'Unknown'} · {formatDateTime(inc.createdAt)}
@@ -294,6 +331,16 @@ export default function IncidentDetailPage() {
             <Card>
               <CardHeader><CardTitle>Investigation</CardTitle></CardHeader>
               <CardContent className="space-y-4">
+                {inc.isRejected && inc.rejectionComment && (
+                  <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/25 p-3 text-red-400 text-sm">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold">Investigation Report Rejected</p>
+                      <p className="mt-0.5 opacity-90">{inc.rejectionComment}</p>
+                      <p className="text-[10px] opacity-75 mt-1">Please correct the findings and resubmit.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Findings</Label>
                   <Textarea value={invFindings} onChange={e => setInvFindings(e.target.value)} placeholder="Document investigation findings..." rows={4} disabled={inc.status === 'CLOSED' || (user?.role !== 'admin' && user?.role !== 'incident_manager' && user?.role !== 'investigator')} />
@@ -333,11 +380,18 @@ export default function IncidentDetailPage() {
                     </div>
                   )}
                 </div>
-                {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
-                  <Button onClick={() => addInvMut.mutate()} disabled={addInvMut.isPending || uploadMut.isPending} className="mt-4">
-                    {addInvMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Investigation'}
-                  </Button>
-                )}
+                <div className="flex gap-2 flex-wrap mt-4">
+                  {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status !== 'CLOSED' && (
+                    <Button onClick={() => addInvMut.mutate()} disabled={addInvMut.isPending || uploadMut.isPending}>
+                      {addInvMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Investigation'}
+                    </Button>
+                  )}
+                  {(user?.role === 'admin' || user?.role === 'incident_manager' || user?.role === 'investigator') && inc.status === 'IN_PROGRESS' && (
+                    <Button onClick={() => submitInvWorkflowMut.mutate()} disabled={submitInvWorkflowMut.isPending} variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+                      {submitInvWorkflowMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit for Review'}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -439,6 +493,35 @@ export default function IncidentDetailPage() {
                     })}
                   </div>
                 </div>
+                {(user?.role === 'admin' || user?.role === 'incident_manager') && inc.status === 'UNDER_REVIEW' && (
+                  <div className="pt-4 border-t border-border/50 space-y-4">
+                    <h4 className="text-sm font-semibold">Investigation Report Review</h4>
+                    <p className="text-xs text-muted-foreground">Approve the investigation to clear flags, or reject it back to the investigator with a comment.</p>
+                    {showRejectionForm ? (
+                      <div className="space-y-3">
+                        <Label>Rejection Comment <span className="text-destructive">*</span></Label>
+                        <Textarea value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} placeholder="Explain what needs correction..." rows={3} />
+                        <div className="flex gap-2">
+                          <Button variant="destructive" onClick={() => rejectInvWorkflowMut.mutate()} disabled={!rejectionReason.trim() || rejectInvWorkflowMut.isPending}>
+                            {rejectInvWorkflowMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Rejection'}
+                          </Button>
+                          <Button variant="ghost" onClick={() => { setShowRejectionForm(false); setRejectionReason(''); }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button onClick={() => approveInvWorkflowMut.mutate()} disabled={approveInvWorkflowMut.isPending} className="bg-green-600 hover:bg-green-700 text-white">
+                          {approveInvWorkflowMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve Investigation'}
+                        </Button>
+                        <Button variant="destructive" onClick={() => setShowRejectionForm(true)}>
+                          Reject Investigation
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {(user?.role === 'admin' || user?.role === 'incident_manager') && inc.status !== 'CLOSED' && (
                   <Button onClick={() => addReviewMut.mutate()} disabled={!rvNotes || addReviewMut.isPending}>
                     {addReviewMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit Review'}
@@ -483,7 +566,7 @@ export default function IncidentDetailPage() {
                       variant="destructive"
                       className="w-full"
                     >
-                      {closeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : '🔒 Close Incident'}
+                      {closeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Lock className="h-4 w-4 mr-2 inline" /> Close Incident</>}
                     </Button>
                   </>
                 ) : (
@@ -525,12 +608,13 @@ export default function IncidentDetailPage() {
                 <Brain className="h-3.5 w-3.5 text-primary" /> Similar Incidents
                 {similar !== null && (
                   <button
+
                     onClick={loadSimilar}
                     disabled={simLoad}
                     className="ml-auto text-[10px] text-muted-foreground hover:text-primary transition-colors"
                     title="Refresh"
                   >
-                    {simLoad ? <Loader2 className="h-3 w-3 animate-spin" /> : '↺'}
+                    {simLoad ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                   </button>
                 )}
               </CardTitle>
@@ -547,8 +631,8 @@ export default function IncidentDetailPage() {
                     {simLoad ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Find Similar'}
                   </Button>
                   {!inc.aiProcessed && (
-                    <p className="text-[10px] text-muted-foreground text-center">
-                      ⏳ AI is processing this incident…
+                    <p className="text-[10px] text-muted-foreground text-center flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" /> AI is processing this incident...
                     </p>
                   )}
                 </>

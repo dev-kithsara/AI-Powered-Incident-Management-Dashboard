@@ -5,6 +5,7 @@ import type {
   Control, Review, Closure, User, Stats,
   PaginatedResponse, SimilarIncident, ClusterMap,
   ModelStatus, RiskPrediction, TimelineEvent, RiskAnalysis,
+  ChatContact, ChatMessage
 } from '@/types'
 
 // ── Axios instance ─────────────────────────────────────────────────────────
@@ -112,6 +113,14 @@ export const incidentsApi = {
 
   getControlEffectiveness: () =>
     api.get<{ data: any[] }>('/incidents/control-effectiveness'),
+
+  // Investigation workflow
+  submitInvestigation: (id: number) =>
+    api.post<{ data: Incident }>(`/incidents/${id}/submit-investigation`),
+  rejectInvestigation: (id: number, comment: string) =>
+    api.post<{ data: Incident }>(`/incidents/${id}/reject-investigation`, { comment }),
+  approveInvestigation: (id: number) =>
+    api.post<{ data: Incident }>(`/incidents/${id}/approve-investigation`),
 }
 
 // ── Stats ──────────────────────────────────────────────────────────────────
@@ -149,4 +158,16 @@ export const aiApi = {
   seedBaseline: () => api.post('/ai/seed-baseline'),
   recommendLessons: (data: { title: string; description: string; category?: string; department?: string }) =>
     api.post<{ recommendations: any[] }>('/ai/lessons-learned/recommend', data),
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────
+export const chatApi = {
+  getContacts: () => 
+    api.get<{ data: ChatContact[] }>('/chat/contacts'),
+  getMessages: (contactId: number) => 
+    api.get<{ data: ChatMessage[] }>(`/chat/messages/${contactId}`),
+  sendMessage: (receiverId: number, content: string) => 
+    api.post<{ data: ChatMessage }>('/chat/messages', { receiverId, content }),
+  markAsRead: (senderId: number) => 
+    api.put(`/chat/messages/${senderId}/read`),
 }

@@ -26,6 +26,9 @@ model User {
   closures          IncidentClosure[]
   auditLogs         AuditLog[]
 
+  sentMessages      ChatMessage[] @relation("SentMessages")
+  receivedMessages  ChatMessage[] @relation("ReceivedMessages")
+
   @@map("users")
 }
 
@@ -43,6 +46,8 @@ model Incident {
   predictedRiskScore Float?    @map("predicted_risk_score")
   clusterId          Int?      @map("cluster_id")
   deletedAt          DateTime? @map("deleted_at")
+  isRejected         Boolean   @default(false) @map("is_rejected")
+  rejectionComment   String?   @map("rejection_comment")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
@@ -198,4 +203,18 @@ model ModelMetrics {
   trainedAt       DateTime @default(now()) @map("trained_at")
 
   @@map("model_metrics")
+}
+
+model ChatMessage {
+  id         Int      @id @default(autoincrement())
+  senderId   Int      @map("sender_id")
+  receiverId Int      @map("receiver_id")
+  content    String
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("chat_messages")
 }

@@ -11,6 +11,7 @@ const incidentRoutes = require('./routes/incidents');
 const userRoutes     = require('./routes/users');
 const statsRoutes    = require('./routes/stats');
 const aiProxyRoutes  = require('./routes/aiProxy');
+const chatRoutes     = require('./routes/chat');
 const { errorHandler } = require('./middleware/errorHandler');
 const { auditLogger }  = require('./middleware/audit');
 
@@ -59,6 +60,7 @@ app.use('/api/v1/incidents', incidentRoutes);
 app.use('/api/v1/users',     userRoutes);
 app.use('/api/v1/stats',     statsRoutes);
 app.use('/api/v1/ai',        aiProxyRoutes);
+app.use('/api/v1/chat',      chatRoutes);
 
 // ── 404 ──────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));

@@ -1,7 +1,7 @@
 // ── Core Entities ──────────────────────────────────────────────────────────
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 export type IncidentStatus = 'OPEN' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'CLOSED'
-export type UserRole = 'admin' | 'incident_manager' | 'investigator' | 'risk_analyst'
+export type UserRole = 'admin' | 'incident_manager' | 'investigator' | 'risk_analyst' | 'reporter'
 
 export interface User {
   id:        number
@@ -28,6 +28,8 @@ export interface Incident {
   clusterId?:         number
   investigatorId?:    number | null
   deletedAt?:         string
+  isRejected?:        boolean
+  rejectionComment?:  string | null
   createdAt:          string
   updatedAt:          string
   // lifecycle objects (populated by getById)
@@ -235,4 +237,22 @@ export interface RiskAnalysis {
   department_risk:    DepartmentRisk[]
   category_breakdown: CategoryBreakdown[]
   top_at_risk:        AtRiskIncident[]
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────
+export interface ChatContact {
+  id:          number
+  name:        string
+  email:       string
+  role:        UserRole
+  unreadCount: number
+}
+
+export interface ChatMessage {
+  id:         number
+  senderId:   number
+  receiverId: number
+  content:    string
+  isRead:     boolean
+  createdAt:  string
 }

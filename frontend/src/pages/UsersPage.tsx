@@ -20,6 +20,7 @@ export const ROLES: { value: UserRole; label: string }[] = [
   { value: 'incident_manager', label: 'Incident Manager' },
   { value: 'investigator',     label: 'Investigator'     },
   { value: 'risk_analyst',     label: 'Risk Analyst'     },
+  { value: 'reporter',         label: 'Reporter'         },
 ]
 
 // ── Role appearance map ─────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ const ROLE_META: Record<
   incident_manager: { label: 'Incident Manager', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', Icon: Shield        },
   investigator:     { label: 'Investigator',     color: 'text-violet-400 bg-violet-500/10 border-violet-500/30', Icon: Microscope    },
   risk_analyst:     { label: 'Risk Analyst',     color: 'text-cyan-400   bg-cyan-500/10   border-cyan-500/30',   Icon: BarChart2     },
+  reporter:         { label: 'Reporter',         color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', Icon: HardHat    },
 }
 
 /** Compact role badge displayed in the table trigger */
@@ -87,7 +89,7 @@ export default function UsersPage() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">User Management</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{allUsers.length} registered users</p>
         </div>
         <Button onClick={() => setShowForm(v => !v)} size="sm" className="gap-1.5">

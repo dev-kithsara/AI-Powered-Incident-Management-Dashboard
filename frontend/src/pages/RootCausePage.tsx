@@ -88,8 +88,8 @@ export default function RootCausePage() {
     <div className="space-y-8">
       {/* ── Title ──────────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-          <ShieldAlert className="h-6 w-6 text-primary" /> Root Cause Analysis Dashboard
+        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+          <ShieldAlert className="h-8 w-8 text-primary" /> Root Cause Analysis Dashboard
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Explore historical breakdowns, identify critical failure vectors, and review AI-driven organizational health trends.

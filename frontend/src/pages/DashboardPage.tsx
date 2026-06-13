@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   AlertTriangle, CheckCircle, Clock, Eye, TrendingUp,
-  Activity, ArrowRight, Zap,
+  Activity, ArrowRight, Zap, Lightbulb
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
@@ -92,8 +92,8 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              Welcome, <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Welcome, <span className="gradient-text">{user?.name.split(' ')[0]}</span>
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Report incidents and track the progress of your submissions.
@@ -208,7 +208,7 @@ export default function DashboardPage() {
 
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="pt-5">
-                <p className="text-xs font-semibold text-primary mb-1">📌 Tips for a good report</p>
+                <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5"><Lightbulb className="h-3 w-3" /> Tips for a good report</p>
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   <li>• Be as specific as possible about what happened</li>
                   <li>• Include exact location and time if known</li>
@@ -229,9 +229,9 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Welcome back,{' '}
-              <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+              <span className="gradient-text">{user?.name.split(' ')[0]}</span>
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Here's your caseload overview and pending action items.
@@ -251,6 +251,37 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Action Trackers */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Rejected Investigations */}
+            {stats?.recentIncidents?.some((inc: any) => inc.isRejected) && (
+              <Card className="border-red-500/20 bg-red-500/5">
+                <CardHeader>
+                  <CardTitle className="text-red-400 flex items-center gap-2 text-base">
+                    <AlertTriangle className="h-5 w-5 text-red-500 animate-bounce" /> Rejected Investigations
+                  </CardTitle>
+                  <p className="text-xs text-red-300/70">Investigations rejected by management. Please correct and resubmit.</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {stats.recentIncidents
+                    .filter((inc: any) => inc.isRejected)
+                    .map((inc: any) => (
+                      <div key={inc.id} className="p-3 rounded-lg border border-red-500/25 bg-background/60 hover:bg-background/80 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 mr-4">
+                            <Link to={`/incidents/${inc.id}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+                              #{inc.id} - {inc.title}
+                            </Link>
+                            <p className="text-xs text-red-400 mt-1.5 italic font-medium bg-red-500/10 p-2 rounded border border-red-500/20">
+                              Reason: {inc.rejectionComment}
+                            </p>
+                          </div>
+                          <Badge variant="destructive" className="text-[10px] tracking-wide font-bold uppercase">{inc.severity}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Overdue Actions Tracker */}
             <Card className="border-red-500/20 bg-red-500/5">
               <CardHeader>
@@ -372,9 +403,19 @@ export default function DashboardPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">{formatDate(inc.createdAt)}</p>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 font-medium ${statusClass(inc.status)}`}>
-                      {inc.status.replace('_', ' ')}
-                    </span>
+                    {inc.isRejected ? (
+                      <span className="text-[10px] px-2 py-0.5 font-bold bg-red-500/10 text-red-400 border border-red-500/20 rounded uppercase">
+                        Rejected
+                      </span>
+                    ) : inc.status === 'OPEN' ? (
+                      <span className="text-[10px] px-2 py-0.5 font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded uppercase">
+                        New
+                      </span>
+                    ) : (
+                      <span className={`text-[10px] px-2 py-0.5 font-medium ${statusClass(inc.status)}`}>
+                        {inc.status.replace('_', ' ')}
+                      </span>
+                    )}
                   </Link>
                 ))}
                 {!stats?.recentIncidents.length && (
@@ -394,9 +435,9 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Manager Overview,{' '}
-              <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+              <span className="gradient-text">{user?.name.split(' ')[0]}</span>
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Triage new reports and oversee incident resolution.
@@ -502,18 +543,18 @@ export default function DashboardPage() {
                 <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
               </CardHeader>
               <CardContent className="space-y-3">
-                {stats?.byCategory?.slice(0, 4).map((c: any, i: number) => (
+                {stats?.topCategories?.slice(0, 4).map((c: any, i: number) => (
                   <div key={c.category} className="space-y-1">
                     <div className="flex justify-between text-[11px]">
                       <span className="text-foreground font-medium flex items-center gap-1.5">
                         <span className="text-muted-foreground">{i + 1}</span> {c.category}
                       </span>
-                      <span className="text-primary font-bold">{c._count.id}</span>
+                      <span className="text-primary font-bold">{c.count}</span>
                     </div>
                     <div className="h-1.5 w-full bg-accent/50 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-primary/80 rounded-full" 
-                        style={{ width: `${Math.min(100, (c._count.id / Math.max(1, stats.total)) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (c.count / Math.max(1, stats.total)) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -531,22 +572,15 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'},{' '}
-            <span className="gradient-text">{user?.name.split(' ')[0]}</span> 👋
+            <span className="gradient-text">{user?.name.split(' ')[0]}</span>
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Here's what's happening in your incident management system.
           </p>
         </div>
-        {user?.role === 'reporter' && (
-          <Link
-            to="/incidents/new"
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground btn-glow hover:bg-primary/90 transition-colors"
-          >
-            <Zap className="h-4 w-4" /> New Incident
-          </Link>
-        )}
+
       </div>
 
       {/* KPI Cards */}

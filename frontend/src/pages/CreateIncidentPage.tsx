@@ -123,7 +123,7 @@ export default function CreateIncidentPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Report New Incident</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Report New Incident</h1>
           <p className="text-sm text-muted-foreground">Fill in the details to log a new incident</p>
         </div>
       </div>
@@ -168,10 +168,10 @@ export default function CreateIncidentPage() {
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LOW">🟢 Low</SelectItem>
-                      <SelectItem value="MEDIUM">🟡 Medium</SelectItem>
-                      <SelectItem value="HIGH">🟠 High</SelectItem>
-                      <SelectItem value="CRITICAL">🔴 Critical</SelectItem>
+                      <SelectItem value="LOW"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500/80" /> Low</div></SelectItem>
+                      <SelectItem value="MEDIUM"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500/80" /> Medium</div></SelectItem>
+                      <SelectItem value="HIGH"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-orange-500/80" /> High</div></SelectItem>
+                      <SelectItem value="CRITICAL"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500/80" /> Critical</div></SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -21,10 +21,10 @@ const CATEGORIES  = ['Infrastructure', 'Security', 'Health & Safety', 'Software'
 const DEPARTMENTS = ['IT', 'Engineering', 'HR', 'Finance', 'Operations', 'Facilities', 'Legal', 'Management']
 
 const SEV_OPTS = [
-  { value: 'LOW',      label: '🟢 Low — Minor issue, limited impact',           color: 'border-green-500/30 bg-green-500/5  text-green-400' },
-  { value: 'MEDIUM',   label: '🟡 Medium — Moderate impact, needs attention',   color: 'border-yellow-500/30 bg-yellow-500/5 text-yellow-400' },
-  { value: 'HIGH',     label: '🟠 High — Significant impact, act soon',          color: 'border-orange-500/30 bg-orange-500/5 text-orange-400' },
-  { value: 'CRITICAL', label: '🔴 Critical — Severe impact, immediate action!', color: 'border-red-500/30    bg-red-500/5    text-red-400' },
+  { value: 'LOW',      label: 'Low — Minor issue, limited impact',           dot: 'bg-green-500',   color: 'border-green-500/30 bg-green-500/5  text-green-400' },
+  { value: 'MEDIUM',   label: 'Medium — Moderate impact, needs attention',   dot: 'bg-yellow-500',  color: 'border-yellow-500/30 bg-yellow-500/5 text-yellow-400' },
+  { value: 'HIGH',     label: 'High — Significant impact, act soon',         dot: 'bg-orange-500',  color: 'border-orange-500/30 bg-orange-500/5 text-orange-400' },
+  { value: 'CRITICAL', label: 'Critical — Severe impact, immediate action!', dot: 'bg-red-500',     color: 'border-red-500/30    bg-red-500/5    text-red-400' },
 ]
 
 type Step = 1 | 2 | 'success'
@@ -144,7 +144,7 @@ export default function ReporterCreateIncidentPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Incident Submitted! 🎉</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Incident Submitted!</h1>
           <p className="text-muted-foreground max-w-md">
             Your incident report <span className="font-semibold text-primary">#{createdId}</span> has been successfully submitted.
             The Incident Management team will be notified and will begin processing it shortly.
@@ -185,7 +185,7 @@ export default function ReporterCreateIncidentPage() {
           </Button>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Report an Incident</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Report an Incident</h1>
           <p className="text-sm text-muted-foreground">
             Help us understand what happened so we can respond quickly, {user?.name.split(' ')[0]}.
           </p>
@@ -255,7 +255,10 @@ export default function ReporterCreateIncidentPage() {
                           : 'border-border bg-accent/30 text-muted-foreground hover:bg-accent'
                       }`}
                     >
-                      {opt.label}
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full flex-shrink-0 ${opt.dot}`} />
+                        <span>{opt.label}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -363,10 +366,10 @@ export default function ReporterCreateIncidentPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="LOW">🟢 Low</SelectItem>
-                        <SelectItem value="MEDIUM">🟡 Medium</SelectItem>
-                        <SelectItem value="HIGH">🟠 High</SelectItem>
-                        <SelectItem value="URGENT">🔴 Urgent</SelectItem>
+                        <SelectItem value="LOW"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500/80" /> Low</div></SelectItem>
+                        <SelectItem value="MEDIUM"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-yellow-500/80" /> Medium</div></SelectItem>
+                        <SelectItem value="HIGH"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-orange-500/80" /> High</div></SelectItem>
+                        <SelectItem value="URGENT"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500/80" /> Urgent</div></SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
